@@ -145,7 +145,7 @@ import {
   GetTeamById,
   UpdateTeamById,
   CreateGame,
-  GetTeamByNameAndPassword
+  // GetTeamByNameAndPassword
 } from '../services/routes.js';
 export default {
   mounted() {
@@ -1026,10 +1026,10 @@ export default {
       };
       return obj;
     },
-    async getUpdatedTeam(team, pw) {
-      const res = await GetTeamByNameAndPassword(team, pw);
-      this.$store.commit('setTeam', res);
-    }
+    // async getUpdatedTeam(team, pw) {
+    //   const res = await GetTeamByNameAndPassword(team, pw);
+    //   this.$store.commit('setTeam', res);
+    // }
   }
 };
 </script>
