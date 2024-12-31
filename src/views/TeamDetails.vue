@@ -68,16 +68,18 @@
         </div>
         <div class="opposing-team">
           <table>
-            <tr>
-              <th>Points</th>
-              <th>Reb</th>
-              <th>Assists</th>
-              <th>Steals</th>
-              <th>Blocks</th>
-              <th>TO</th>
-              <th>FG%</th>
-              <th>3P%</th>
-            </tr>
+            <thead>
+              <tr>
+                <th>Points</th>
+                <th>Reb</th>
+                <th>Assists</th>
+                <th>Steals</th>
+                <th>Blocks</th>
+                <th>TO</th>
+                <th>FG%</th>
+                <th>3P%</th>
+              </tr>
+            </thead>
             <tr>
               <td>{{ log.team_two_stats.points }}</td>
               <td>
@@ -207,7 +209,7 @@ th {
 }
 
 .team-container {
-  padding: 1rem
+  padding: 1rem;
 }
 
 .record {

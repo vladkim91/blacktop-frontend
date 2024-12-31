@@ -144,7 +144,7 @@
 import {
   GetTeamById,
   UpdateTeamById,
-  CreateGame,
+  CreateGame
   // GetTeamByNameAndPassword
 } from '../services/routes.js';
 export default {
@@ -238,43 +238,46 @@ export default {
     },
 
     checkShootPass(team) {
-      const currentTeam = team;
+      const playerTendencies = []; // Array to store tendencies for all players
 
-      let player1 = 0;
-      let player2 = 0;
-      let player3 = 0;
+      team.forEach((player) => {
+        let totalTendency = 0;
+        const offensiveTendencies = player.tendencies.offense;
 
-      currentTeam.forEach((e, i) => {
-        const offensiveTendencies = e.tendencies.offense;
         for (const property in offensiveTendencies) {
-          if (i === 0) {
-            if (property === 'pass' || property === 'set_screen') continue;
+          if (property === 'pass' || property === 'set_screen') continue;
 
-            player1 += parseInt(offensiveTendencies[property]);
-          } else if (i === 1) {
-            if (property === 'pass' || property === 'set_screen') continue;
-
-            player2 += parseInt(offensiveTendencies[property]);
-          } else {
-            if (property === 'pass' || property === 'set_screen') continue;
-
-            player3 += parseInt(offensiveTendencies[property]);
-          }
+          totalTendency += parseInt(offensiveTendencies[property]);
         }
+
+        playerTendencies.push(totalTendency); // Add the player's total tendency to the array
       });
 
-      return this.calcShotTendencies(player1, player2, player3);
+      // Dynamically calculate shot tendencies for any number of players
+      return this.calcShotTendencies(...playerTendencies);
     },
 
-    calcShotTendencies(p1, p2, p3) {
-      const p1ST = parseFloat((p1 / (p1 + p2 + p3)).toFixed(2));
-      const p2ST = parseFloat((p2 / (p1 + p2 + p3)).toFixed(2));
-      const chance = Math.random().toFixed(2);
-      return chance <= p1ST
-        ? 0
-        : chance > p1ST && chance <= p1ST + p2ST
-        ? 1
-        : 2;
+    calcShotTendencies(...tendencies) {
+      const totalTendency = tendencies.reduce(
+        (sum, tendency) => sum + tendency,
+        0
+      ); // Calculate the total tendency
+      const probabilities = tendencies.map(
+        (tendency) => tendency / totalTendency
+      ); // Calculate individual probabilities
+
+      const chance = Math.random(); // Generate a random number between 0 and 1
+      let cumulativeProbability = 0;
+
+      // Iterate over probabilities and find the player whose range matches the chance
+      for (let i = 0; i < probabilities.length; i++) {
+        cumulativeProbability += probabilities[i];
+        if (chance <= cumulativeProbability) {
+          return i; // Return the index of the selected player
+        }
+      }
+
+      return probabilities.length - 1; // Fallback in case of rounding errors
     },
     pickTypeOfShot(player) {
       let rim = 0;
@@ -787,41 +790,37 @@ export default {
       }
     },
     calcRebounder(team) {
-      let rebounder;
-      let player1 = 0,
-        player2 = 0,
-        player3 = 0;
-      team.forEach((e, i) => {
-        if (i === 0) {
-          player1 += e.attributes.defense.def_rebound;
-          player1 += e.attributes.offense.off_rebound;
-        } else if (i === 1) {
-          player2 += e.attributes.defense.def_rebound;
-          player2 += e.attributes.offense.off_rebound;
-        } else {
-          player3 += e.attributes.defense.def_rebound;
-          player3 += e.attributes.offense.off_rebound;
-        }
+      let reboundChances = [];
+      let totalReboundScore = 0;
+
+      // Calculate rebound scores for each player
+      team.forEach((player) => {
+        const reboundScore =
+          player.attributes.defense.def_rebound +
+          player.attributes.offense.off_rebound;
+        reboundChances.push(reboundScore);
+        totalReboundScore += reboundScore;
       });
-      const p1Chance = parseFloat(
-        (player1 / (player1 + player2 + player3)).toFixed(2)
-      );
-      const p2Chance = parseFloat(
-        (player2 / (player1 + player2 + player3)).toFixed(2)
+
+      // Convert rebound scores to probabilities
+      const probabilities = reboundChances.map(
+        (score) => score / totalReboundScore
       );
 
-      const chance = Math.random().toFixed(2);
+      const chance = Math.random(); // Generate a random number between 0 and 1
+      let cumulativeProbability = 0;
 
-      if (chance < p1Chance) {
-        rebounder = team[0];
-      } else if (chance > p1Chance && chance < p1Chance + p2Chance) {
-        rebounder = team[1];
-      } else {
-        rebounder = team[2];
+      // Determine the rebounder based on the random chance
+      for (let i = 0; i < probabilities.length; i++) {
+        cumulativeProbability += probabilities[i];
+        if (chance <= cumulativeProbability) {
+          return team[i]; // Return the player who gets the rebound
+        }
       }
 
-      return rebounder;
+      return team[team.length - 1]; // Fallback to the last player in case of rounding issues
     },
+
     logRebounds(string) {
       this.gameLog.unshift(
         string[Math.floor(Math.random() * string.length)] +
@@ -877,35 +876,42 @@ export default {
           `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
       );
     },
-    calcAssist(team, player) {
-      let player1 = 0,
-        player2 = 0;
+    calcAssist(team, currentPlayer) {
+      let assistScores = [];
+      let totalAssistScore = 0;
 
-      const excludePlayer = team.filter((e) => {
-        if (e.name !== player.name) {
-          return e;
-        }
-      });
-      excludePlayer.forEach((e, i) => {
-        if (i === 0) {
-          player1 += e.attributes.offense.handles;
-          player1 += e.attributes.offense.pass;
-          player1 += e.tendencies.offense.pass;
-        } else {
-          player2 += e.attributes.offense.handles;
-          player2 += e.attributes.offense.pass;
-          player2 += e.tendencies.offense.pass;
-        }
+      // Exclude the current player from the assist calculation
+      const excludePlayer = team.filter(
+        (player) => player.name !== currentPlayer.name
+      );
+
+      // Calculate assist scores for each eligible player
+      excludePlayer.forEach((player) => {
+        const assistScore =
+          player.attributes.offense.handles +
+          player.attributes.offense.pass +
+          player.tendencies.offense.pass;
+        assistScores.push(assistScore);
+        totalAssistScore += assistScore;
       });
 
-      const chance = Math.random().toFixed(2);
-      const p1AssistChance = player1 / (player1 + player2);
+      // Convert assist scores to probabilities
+      const probabilities = assistScores.map(
+        (score) => score / totalAssistScore
+      );
 
-      if (chance < p1AssistChance) {
-        return excludePlayer[0];
-      } else {
-        return excludePlayer[1];
+      const chance = Math.random(); // Generate a random number between 0 and 1
+      let cumulativeProbability = 0;
+
+      // Determine the assisting player based on the random chance
+      for (let i = 0; i < probabilities.length; i++) {
+        cumulativeProbability += probabilities[i];
+        if (chance <= cumulativeProbability) {
+          return excludePlayer[i]; // Return the player who makes the assist
+        }
       }
+
+      return excludePlayer[excludePlayer.length - 1]; // Fallback to the last eligible player
     },
 
     assignToTeams(team1, team2) {
@@ -979,8 +985,8 @@ export default {
       }
 
       this.shootBall(currentPlayer, shotType, matchup);
-      if (this.gameScore.teamOne < 21 && this.gameScore.teamTwo < 21) {
-        setTimeout(this.gameCycle, 1000);
+      if (this.gameScore.teamOne < 10 && this.gameScore.teamTwo < 10) {
+        setTimeout(this.gameCycle, 200);
         return;
       }
       this.gameInProgress = false;
@@ -1025,7 +1031,7 @@ export default {
         date: new Date().toLocaleDateString('en-CA')
       };
       return obj;
-    },
+    }
     // async getUpdatedTeam(team, pw) {
     //   const res = await GetTeamByNameAndPassword(team, pw);
     //   this.$store.commit('setTeam', res);

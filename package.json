@@ -2,13 +2,10 @@
   "name": "client_vue3",
   "version": "0.1.0",
   "private": true,
-  
-  
   "scripts": {
     "start": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint"
-    
   },
   "dependencies": {
     "axios": "^0.25.0",
@@ -27,6 +24,8 @@
     "@vue/compiler-sfc": "^3.0.0",
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^7.0.0"
+    "eslint-plugin-vue": "^7.0.0",
+    "webpack": "^4.47.0",
+    "webpack-cli": "^3.3.12"
   }
 }

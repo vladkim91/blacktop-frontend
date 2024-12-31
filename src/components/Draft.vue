@@ -3,7 +3,7 @@
     <button
       class="start-game"
       @click="startGame"
-      v-if="!(teams.teamOne.length < 3 || teams.teamTwo.length < 3)"
+      v-if="!(teams.teamOne.length < 5 || teams.teamTwo.length < 5)"
     >
       Start
     </button>
@@ -38,8 +38,7 @@
           <span class="stat">Defense: {{ lastStats.defense }}</span>
           <span class="stat">Overall: {{ lastStats.overall }}</span>
         </div>
-        <div v-else class='stats'></div>
-        
+        <div v-else class="stats"></div>
       </div>
       <div class="team-two-container">
         <h4>Team Two</h4>
@@ -106,7 +105,7 @@ export default {
       if (this.checkId(this.ids, player.id)) {
         return null;
       }
-      if (this.$store.state.teams.teamTwo.length === 3) {
+      if (this.$store.state.teams.teamTwo.length === 5) {
         this.$store.commit('setTeams', [player, 0]);
         this.ids.push(player.id);
         this.last = player;
@@ -133,7 +132,7 @@ export default {
       this.$router.push('/gameui');
     },
     disableButton() {
-      if (this.teams.teamOne.length === 3 && this.teams.teamTwo.length === 3)
+      if (this.teams.teamOne.length === 5 && this.teams.teamTwo.length === 5)
         this.isActive = false;
     },
     getOverall(player) {
@@ -167,7 +166,7 @@ export default {
     },
     extractLegendId() {
       const array = [];
-      if (this.$store.state.teams.teamTwo.length === 3) {
+      if (this.$store.state.teams.teamTwo.length === 5) {
         this.$store.state.teams.teamTwo.forEach((e) => {
           array.push(e.id);
         });
@@ -300,17 +299,16 @@ h3 {
   width: 7rem;
   cursor: pointer;
   filter: grayscale(40%);
-  transition: ease-in .5s;
+  transition: ease-in 0.5s;
 }
 
 .player-container:hover {
   filter: grayscale(0);
-  transform: scale(1.1)
+  transform: scale(1.1);
 }
 .player-name {
   font-family: 'Share', cursive;
-  padding: .1rem;
-
+  padding: 0.1rem;
 }
 
 .player-container:hover {
@@ -333,7 +331,7 @@ h3 {
 .l-name {
   position: absolute;
   top: 9rem;
-font-family: 'Share', cursive;
+  font-family: 'Share', cursive;
 }
 
 .last {
@@ -360,5 +358,4 @@ font-family: 'Share', cursive;
   align-items: center;
   min-height: 26rem;
 }
-
 </style>
