@@ -21,6 +21,8 @@
                   <th>TO</th>
                   <th>FG%</th>
                   <th>3P%</th>
+                  <th>FGM/FGA</th>
+                  <th>3PM/3PA</th>
                 </tr>
                 <tr>
                   <td>{{ playerStatTemplate.teamOne[player.name].points }}</td>
@@ -33,7 +35,7 @@
                   <td>
                     {{ playerStatTemplate.teamOne[player.name].turnovers }}
                   </td>
-                  <td>
+                  <td v-if="playerStatTemplate.teamOne[player.name].fga !== 0">
                     <span>%</span
                     >{{
                       Math.ceil(
@@ -43,6 +45,7 @@
                       )
                     }}
                   </td>
+                  <td v-else>%0</td>
                   <td
                     v-if="playerStatTemplate.teamOne[player.name].threeA !== 0"
                   >
@@ -56,6 +59,20 @@
                     }}
                   </td>
                   <td v-else>%0</td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamOne[player.name].fgm +
+                      '/' +
+                      playerStatTemplate.teamOne[player.name].fga
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamOne[player.name].threeM +
+                      '/' +
+                      playerStatTemplate.teamOne[player.name].threeA
+                    }}
+                  </td>
                 </tr>
               </table>
             </div>
@@ -89,6 +106,8 @@
                   <th>TO</th>
                   <th>FG%</th>
                   <th>3P%</th>
+                  <th>FGM/FGA</th>
+                  <th>3PM/3PA</th>
                 </tr>
                 <tr>
                   <td>{{ playerStatTemplate.teamTwo[player.name].points }}</td>
@@ -101,7 +120,7 @@
                   <td>
                     {{ playerStatTemplate.teamTwo[player.name].turnovers }}
                   </td>
-                  <td>
+                  <td v-if="playerStatTemplate.teamTwo[player.name].fga !== 0">
                     <span>%</span
                     >{{
                       Math.ceil(
@@ -111,6 +130,7 @@
                       )
                     }}
                   </td>
+                  <td v-else>%0</td>
                   <td
                     v-if="playerStatTemplate.teamTwo[player.name].threeA !== 0"
                   >
@@ -124,6 +144,20 @@
                     }}
                   </td>
                   <td v-else>%0</td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamTwo[player.name].fgm +
+                      '/' +
+                      playerStatTemplate.teamTwo[player.name].fga
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamTwo[player.name].threeM +
+                      '/' +
+                      playerStatTemplate.teamTwo[player.name].threeA
+                    }}
+                  </td>
                 </tr>
               </table>
             </div>
@@ -319,7 +353,7 @@ export default {
       }
     },
     shootBall(player, type, matchup) {
-      const defaultPercentages = [0.45, 0.35, 0.3, 0.4];
+      const defaultPercentages = [0.45, 0.35, 0.27, 0.4];
       let percentage;
       let defensiveContest;
       let layupDunk = '';
