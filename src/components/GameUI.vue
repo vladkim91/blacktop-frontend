@@ -320,367 +320,103 @@ export default {
     },
     shootBall(player, type, matchup) {
       const defaultPercentages = [0.45, 0.35, 0.3, 0.4];
-      // const chance = Math.random().toFixed(2);
-
-      let defensiveTendencies = matchup.tendencies.defense;
-      let defensiveAttributes = matchup.attributes.defense;
-      let defensivePhysicalAttributes = matchup.attributes.physical;
-      // let contested = false;
+      let percentage;
       let defensiveContest;
       let layupDunk = '';
-      let percentage;
 
+      // Determine shot percentage based on shot type
       switch (type) {
         case 'attack_rim':
           defensiveContest =
-            (defensiveTendencies.block +
-              defensiveAttributes.inside_defense +
-              defensivePhysicalAttributes.vertical +
-              defensivePhysicalAttributes.strength) /
-            4;
-          layupDunk += this.layupOrDunk(
+            (matchup.attributes.defense.inside_defense +
+              matchup.attributes.physical.vertical +
+              matchup.tendencies.defense.block) /
+            3;
+          layupDunk = this.layupOrDunk(
             player.attributes.offense.dunk,
             defensiveContest
           );
-
-          //
-
           percentage = this.calcAttackRim(
             defensiveContest,
             player.attributes.offense[layupDunk],
             defaultPercentages[0]
           );
-          percentage;
-
           break;
+
         case 'shoot_mid':
           defensiveContest =
-            (defensiveTendencies.block +
-              defensiveAttributes.outside_defense +
-              defensivePhysicalAttributes.vertical) /
+            (matchup.attributes.defense.outside_defense +
+              matchup.attributes.physical.vertical +
+              matchup.tendencies.defense.block) /
             3;
           percentage = this.calcShotPercentage(
             defensiveContest,
-            player.attributes.offense['mid_range'],
+            player.attributes.offense.mid_range,
             defaultPercentages[1]
           );
-          percentage;
-          //
           break;
+
         case 'shoot_three':
           defensiveContest =
-            (defensiveTendencies.block +
-              defensiveAttributes.outside_defense +
-              defensivePhysicalAttributes.vertical) /
+            (matchup.attributes.defense.outside_defense +
+              matchup.attributes.physical.vertical +
+              matchup.tendencies.defense.block) /
             3;
           percentage = this.calcShotPercentage(
             defensiveContest,
-            player.attributes.offense['three'],
+            player.attributes.offense.three,
             defaultPercentages[2]
           );
-          percentage;
           break;
+
         case 'post_up':
           defensiveContest =
-            (defensiveTendencies.block +
-              defensiveAttributes.post_defense +
-              defensiveAttributes.inside_defense +
-              defensivePhysicalAttributes.vertical +
-              defensivePhysicalAttributes.strength) /
-            5;
+            (matchup.attributes.defense.post_defense +
+              matchup.attributes.defense.inside_defense +
+              matchup.attributes.physical.vertical) /
+            3;
           percentage = this.calcAttackRim(
             defensiveContest,
-            player.attributes.offense['post_shot'],
+            player.attributes.offense.post_shot,
             defaultPercentages[3]
           );
-          percentage;
           break;
       }
+
+      // Calculate if the shot is made or missed
       const makeOrMiss = this.shoot(percentage);
 
-      const log = (string) => {
-        let assistingPlayer;
-        let message = '';
-        const chance = Math.random().toFixed(2);
-        if (type !== 'shoot_three') {
-          // TEAM 1
-          if (this.possession === 0) {
-            assistingPlayer = this.calcAssist(this.teams.teamOne, player);
-            if (chance < 0.45) {
-              message += `Assisted by ${assistingPlayer.name}. `;
-              this.teamStats.teamOne.assists++;
-              this.playerStatTemplate.teamOne[`${player.name}`].assists++;
-            }
-            this.teamStats.teamOne.fga++;
-            this.teamStats.teamOne.fgm++;
-            this.teamStats.teamOne.points += 2;
-            this.playerStatTemplate.teamOne[`${player.name}`].fga++;
-            this.playerStatTemplate.teamOne[`${player.name}`].fgm++;
-            this.playerStatTemplate.teamOne[`${player.name}`].points += 2;
-            this.gameScore.teamOne += 2;
-            this.possession++;
-            this.gameLog.unshift(
-              string[Math.floor(Math.random() * string.length)] +
-                `${message}` +
-                `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-            );
-          } else {
-            // TEAM 2
-            assistingPlayer = this.calcAssist(this.teams.teamTwo, player);
-            if (chance < 0.45) {
-              message += `Assisted by ${assistingPlayer.name}. `;
-              this.teamStats.teamTwo.assists++;
-              this.playerStatTemplate.teamTwo[`${player.name}`].assists++;
-            }
-            this.teamStats.teamTwo.fga++;
-            this.teamStats.teamTwo.fgm++;
-            this.teamStats.teamTwo.points += 2;
-            this.playerStatTemplate.teamTwo[`${player.name}`].fga++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].fgm++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].points += 2;
-            this.gameScore.teamTwo += 2;
-            this.possession--;
-            this.gameLog.unshift(
-              string[Math.floor(Math.random() * string.length)] +
-                `${message}` +
-                `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-            );
-          }
-        } else {
-          // TEAM 1
-          if (this.possession === 0) {
-            assistingPlayer = this.calcAssist(this.teams.teamOne, player);
-            if (chance < 0.3) {
-              message += `Assisted by ${assistingPlayer.name}. `;
-              this.teamStats.teamOne.assists++;
-              this.playerStatTemplate.teamOne[`${player.name}`].assists++;
-            }
-            this.teamStats.teamOne.fga++;
-            this.teamStats.teamOne.fgm++;
-            this.teamStats.teamOne.points += 3;
-            this.teamStats.teamOne.threeA++;
-            this.teamStats.teamOne.threeM++;
-            this.playerStatTemplate.teamOne[`${player.name}`].fga++;
-            this.playerStatTemplate.teamOne[`${player.name}`].fgm++;
-            this.playerStatTemplate.teamOne[`${player.name}`].points += 3;
-            this.playerStatTemplate.teamOne[`${player.name}`].threeA++;
-            this.playerStatTemplate.teamOne[`${player.name}`].threeM++;
-
-            this.gameScore.teamOne += 3;
-            this.possession++;
-            this.gameLog.unshift(
-              string[Math.floor(Math.random() * string.length)] +
-                `${message}` +
-                `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-            );
-          } else {
-            // TEAM 2
-            assistingPlayer = this.calcAssist(this.teams.teamTwo, player);
-            if (chance < 0.3) {
-              message += `Assisted by ${assistingPlayer.name}. `;
-              this.teamStats.teamTwo.assists++;
-              this.playerStatTemplate.teamTwo[`${player.name}`].assists++;
-            }
-            this.teamStats.teamTwo.fga++;
-            this.teamStats.teamTwo.fgm++;
-            this.teamStats.teamTwo.points += 3;
-            this.teamStats.teamTwo.threeA++;
-            this.teamStats.teamTwo.threeM++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].fga++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].fgm++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].points += 3;
-            this.playerStatTemplate.teamTwo[`${player.name}`].threeA++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].threeM++;
-            this.gameScore.teamTwo += 3;
-            this.possession--;
-            this.gameLog.unshift(
-              string[Math.floor(Math.random() * string.length)] +
-                `${message}` +
-                `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-            );
-          }
-        }
-      };
-      const logMiss = (string, type) => {
-        // TEAM 1
-        if (this.possession === 0) {
-          if (type === '3') {
-            this.teamStats.teamOne.threeA++;
-            this.teamStats.teamOne.fga++;
-            this.playerStatTemplate.teamOne[`${player.name}`].threeA++;
-            this.playerStatTemplate.teamOne[`${player.name}`].fga++;
-          } else {
-            this.playerStatTemplate.teamOne[`${player.name}`].fga++;
-            this.teamStats.teamOne.fga++;
-          }
-          this.gameLog.unshift(
-            string[Math.floor(Math.random() * string.length)] +
-              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-          );
-        } else {
-          if (type === '3') {
-            this.teamStats.teamTwo.threeA++;
-            this.teamStats.teamTwo.fga++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].threeA++;
-            this.playerStatTemplate.teamTwo[`${player.name}`].fga++;
-          } else {
-            this.playerStatTemplate.teamTwo[`${player.name}`].fga++;
-            this.teamStats.teamTwo.fga++;
-          }
-          this.gameLog.unshift(
-            string[Math.floor(Math.random() * string.length)] +
-              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-          );
-        }
-      };
       if (makeOrMiss === 'make') {
-        // MAKE LAYUP & DUNK
-        if (type === 'attack_rim') {
-          const messageVariation = [
-            `${player.name} drove to the rim and finished strong with a ${
-              layupDunk === 'layup' ? 'layup' : 'dunk'
-            }. `,
-            `${player.name} scores with a ${
-              layupDunk === 'layup' ? 'layup' : 'dunk'
-            } at the rim. `,
-            `${player.name} drives baseline and scores 2 with a reverse ${
-              layupDunk === 'layup' ? 'layup' : 'dunk'
-            }. `
-          ];
-          log(messageVariation);
-        } else if (type === 'shoot_mid') {
-          // MAKE MID
-          const messageVariation = [
-            `${player.name} hits a pull up midrange jumper from ${Math.floor(
-              Math.random() * (19 - 10) + 10
-            )} feet. `,
-            `${player.name} nails a contested midrange jumper. `,
-            `${player.name} with a leaning fadeaway. `
-          ];
-          log(messageVariation);
-        } else if (type === 'shoot_three') {
-          // MAKE THREE
-          const messageVariation = [
-            `${player.name} hits a spot up corner 3 pointer. `,
-            `${matchup.name}'s defensive effort is not enough! ${player.name} makes a heavely contested 3 from deep. `,
-            `${player.name} drains a three pointer from downtown. `
-          ];
-          log(messageVariation);
-        } else if (type === 'post_up') {
-          const messageVariation = [
-            `${player.name} makes a jump hook over ${matchup.name}. `,
-            `${player.name} hits an wrong shoulder fadeway in ${matchup.name}'s face. `,
-            `${player.name} used drop step to get a easy bucket under the rim `
-          ];
-          log(messageVariation);
-        }
-
-        // MISSES
+        // Scoring logic
+        const points = type === 'shoot_three' ? 3 : 2;
+        this.updateScoreAndLog(player, points, type);
       } else {
-        if (type === 'attack_rim') {
-          const messageVariation = [];
-          const chance = Math.random().toFixed(2);
-          if (layupDunk === 'layup') {
-            if (chance > 0.3) {
-              messageVariation.unshift(
-                ...[
-                  `${player.name} missed an acrobatic layup. `,
-                  `${player.name}'s finger roll layup is short. `,
-                  `${player.name}'s shot at the rim was contested by ${matchup.name}. ${player.name} missed the shot. `
-                ]
-              );
-              logMiss(messageVariation);
-            } else {
-              if (this.possession === 0) {
-                this.playerStatTemplate.teamTwo[`${matchup.name}`].blocks++;
-                this.teamStats.teamTwo.blocks++;
-              } else {
-                this.playerStatTemplate.teamOne[`${matchup.name}`].blocks++;
-                this.teamStats.teamOne.blocks++;
-              }
+        // Calculate block chance
+        const blockChance = this.calcBlockChance(player, matchup, type);
+        if (Math.random() < blockChance) {
+          // If shot is blocked
+          const blockerStats =
+            this.possession === 0
+              ? this.playerStatTemplate.teamTwo[matchup.name]
+              : this.playerStatTemplate.teamOne[matchup.name];
+          const blockerTeamStats =
+            this.possession === 0
+              ? this.teamStats.teamTwo
+              : this.teamStats.teamOne;
 
-              messageVariation.unshift(
-                ...[
-                  `${player.name}'s layup attempted was sent to the bleachers by ${matchup.name} `,
-                  `${player.name} was blocked by ${matchup.name} `
-                ]
-              );
-              logMiss(messageVariation);
-            }
-          } else if (layupDunk === 'dunk') {
-            if (chance > 0.15) {
-              messageVariation.unshift(
-                ...[
-                  `${player.name}'s dunk attempt was unsuccessful. `,
-                  `${player.name} attempts a dunk in traffic. ${matchup.name}'s contest is too perfect. `,
-                  `${player.name} think he has an open lane for a slam, but ${matchup.name} is there to contest. ${player.name} misses the dunk attempt. `
-                ]
-              );
-              logMiss(messageVariation);
-            } else {
-              if (this.possession === 0) {
-                this.playerStatTemplate.teamTwo[`${matchup.name}`].blocks++;
-                this.teamStats.teamTwo.blocks++;
-              } else {
-                this.playerStatTemplate.teamOne[`${matchup.name}`].blocks++;
-                this.teamStats.teamOne.blocks++;
-              }
+          blockerStats.blocks++;
+          blockerTeamStats.blocks++;
 
-              messageVariation.unshift(
-                ...[
-                  `${player.name} get's stuffed at the rim by ${matchup.name}. `,
-                  `${player.name} is blocked at the rim by ${matchup.name}. `
-                ]
-              );
-              logMiss(messageVariation);
-            }
-            //
-          }
-        } else if (type === 'shoot_mid') {
-          const messageVariation = [
-            `${player.name} misses elbow jumper. `,
-            `${player.name} was contested by ${matchup.name} and missed a midrange jumper. `,
-            `${player.name} misses a contested midrange pullup. `
-          ];
-          logMiss(messageVariation);
-        } else if (type === 'shoot_three') {
-          const messageVariation = [
-            `${player.name} misses a wide open three. `,
-            `${matchup.name} contested ${player.name}'s 3 point shot. ${player.name} misses. `,
-            `${player.name} airballs a logo 3. `
-          ];
-          logMiss(messageVariation, '3');
-        } else if (type === 'post_up') {
-          const chance = Math.random().toFixed(2);
-          const messageVariation = [];
-          if (chance > 0.2) {
-            messageVariation.unshift(
-              ...[
-                `${player.name} misses a jump hook. `,
-                `${player.name} attempts a skyhook and misses. `,
-                `${matchup.name} nearly blocks ${player.name}'s post fadeaway. Shot bounces off the rim. `
-              ]
-            );
-            logMiss(messageVariation);
-          } else {
-            if (this.possession === 0) {
-              this.playerStatTemplate.teamTwo[`${matchup.name}`].blocks++;
-              this.teamStats.teamTwo.blocks++;
-            } else {
-              this.playerStatTemplate.teamOne[`${matchup.name}`].blocks++;
-              this.teamStats.teamOne.blocks++;
-            }
-            //
-            messageVariation.unshift(
-              ...[
-                `${matchup.name} stuffs ${player.name}'s jump hook. `,
-                `${matchup.name} sends ${player.name}'s weak layup under the rim the stands. `,
-                `${player.name} is blocked at the rim by ${matchup.name}. `
-              ]
-            );
-            logMiss(messageVariation);
-          }
+          const blockMessage = `${matchup.name} blocks ${player.name}'s shot!`;
+          this.gameLog.unshift(
+            `${blockMessage} ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          );
+        } else {
+          // If not blocked, update missed shot stats
+          this.updateMissedShotStats(player, type);
         }
+
+        // Handle rebounds after a missed or blocked shot
         this.rebound(this.teams.teamOne, this.teams.teamTwo);
       }
     },
@@ -722,82 +458,126 @@ export default {
       const calcRebound = (team) => {
         let def = 0;
         let off = 0;
-        team.forEach((e) => {
-          def += e.attributes.defense.def_rebound;
-          off += e.attributes.offense.off_rebound;
+        team.forEach((player) => {
+          def += player.attributes.defense.def_rebound;
+          off += player.attributes.offense.off_rebound;
         });
-        let teamDefRebound = parseFloat((def / 300).toFixed(2));
-        let teamOffRebound = parseFloat((off / 300).toFixed(2));
+        const teamDefRebound = parseFloat((def / 300).toFixed(2));
+        const teamOffRebound = parseFloat((off / 300).toFixed(2));
         return [teamDefRebound, teamOffRebound];
       };
 
-      const [t1DefRebound, t1OffRebound] = calcRebound(team1);
-      const [t2DefRebound, t2OffRebound] = calcRebound(team2);
+      const [teamOneDefRebound, teamOneOffRebound] = calcRebound(team1);
+      const [teamTwoDefRebound, teamTwoOffRebound] = calcRebound(team2);
+
+      const scalingFactor = 0.32; // Penalize offensive rebounds
 
       const chance = Math.random().toFixed(2);
+      let rebounder;
+
       if (this.possession === 0) {
-        const offReboundChance = parseFloat(
-          (t1OffRebound / (t1OffRebound + t2DefRebound) - 0.25).toFixed(2)
+        // Team 1 (Home) is on offense
+        const offensiveReboundChance = parseFloat(
+          (
+            (teamOneOffRebound * scalingFactor) /
+            (teamOneOffRebound * scalingFactor + teamTwoDefRebound)
+          ).toFixed(2)
         );
-        let rebounder;
-        if (chance > offReboundChance) {
-          rebounder = this.calcRebounder(team2);
-          this.playerStatTemplate.teamTwo[`${rebounder.name}`].rebounds++;
-          this.teamStats.teamTwo.rebounds++;
-          const messageVariation = [
-            `${rebounder.name} grabs defensive rebound. `,
-            `${rebounder.name} boxes out offensive players and succesfully grabs the rebound. `,
-            `${rebounder.name} snatches devensive rebound. `
-          ];
-          this.possession++;
-          this.logRebounds(messageVariation);
-        } else {
-          rebounder = rebounder = this.calcRebounder(team1);
-          this.playerStatTemplate.teamOne[`${rebounder.name}`].rebounds++;
-          this.teamStats.teamOne.rebounds++;
-          const messageVariation = [
-            `${rebounder.name} uses his strengh to grab offensive rebound. `,
-            `${rebounder.name} outhustles opposing to team and get offensive board. `
-          ];
-          this.logRebounds(messageVariation);
-        }
-      } else {
-        const offReboundChance = parseFloat(
-          (t2OffRebound / (t2OffRebound + t1DefRebound) - 0.25).toFixed(2)
-        );
-        let rebounder;
-        if (chance > offReboundChance) {
+
+        if (chance < offensiveReboundChance) {
           rebounder = this.calcRebounder(team1);
           this.playerStatTemplate.teamOne[`${rebounder.name}`].rebounds++;
           this.teamStats.teamOne.rebounds++;
-          const messageVariation = [
-            `${rebounder.name} grabs defensive rebound. `,
-            `${rebounder.name} boxes out offensive players and succesfully grabs the rebound. `,
-            `${rebounder.name} snatches devensive rebound. `
-          ];
-          this.possession--;
-          this.logRebounds(messageVariation);
+          this.gameLog.unshift(
+            `${rebounder.name} grabs offensive rebound. ` +
+              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          );
         } else {
           rebounder = this.calcRebounder(team2);
           this.playerStatTemplate.teamTwo[`${rebounder.name}`].rebounds++;
           this.teamStats.teamTwo.rebounds++;
-          const messageVariation = [
-            `${rebounder.name} uses his strengh to grab offensive rebound. `,
-            `${rebounder.name} outhustles opposing to team and get offensive board. `
-          ];
-          this.logRebounds(messageVariation);
+          this.gameLog.unshift(
+            `${rebounder.name} grabs defensive rebound. ` +
+              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          );
+          this.possession = 1; // Change possession
+        }
+      } else {
+        // Team 2 (Away) is on offense
+        const offensiveReboundChance = parseFloat(
+          (
+            (teamTwoOffRebound * scalingFactor) /
+            (teamTwoOffRebound * scalingFactor + teamOneDefRebound)
+          ).toFixed(2)
+        );
+
+        if (chance < offensiveReboundChance) {
+          rebounder = this.calcRebounder(team2);
+          this.playerStatTemplate.teamTwo[`${rebounder.name}`].rebounds++;
+          this.teamStats.teamTwo.rebounds++;
+          this.gameLog.unshift(
+            `${rebounder.name} grabs offensive rebound. ` +
+              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          );
+        } else {
+          rebounder = this.calcRebounder(team1);
+          this.playerStatTemplate.teamOne[`${rebounder.name}`].rebounds++;
+          this.teamStats.teamOne.rebounds++;
+          this.gameLog.unshift(
+            `${rebounder.name} grabs defensive rebound. ` +
+              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          );
+          this.possession = 0; // Change possession
         }
       }
+    },
+    calcBlockChance(defender, shooter, shotType) {
+      // Defensive stats contributions
+      const insideDefenseWeight = 0.5;
+      const perimeterDefenseWeight = 0.2; // Smaller weight for perimeter defense
+      const verticalWeight = 0.2;
+      const heightWeight = 0.1;
+
+      // Defender's effective block ability
+      let effectiveDefense =
+        defender.attributes.defense.inside_defense * insideDefenseWeight +
+        defender.attributes.defense.outside_defense * perimeterDefenseWeight +
+        defender.attributes.physical.vertical * verticalWeight +
+        defender.height * heightWeight; // Include height advantage
+
+      // Shooter's ability to counter blocks
+      const shooterAdvantage = shooter.height * 0.05; // Taller shooters are harder to block
+
+      // Adjust based on shot type
+      if (shotType === 'shoot_mid' || shotType === 'shoot_three') {
+        effectiveDefense *= 0.7; // Lower block effectiveness for outside shots
+      }
+
+      // Global scaling for block chance
+      const globalBlockScale = 0.03; // Adjust to target ~3% block rate
+      const blockChance =
+        (effectiveDefense - shooterAdvantage) * globalBlockScale;
+
+      // Ensure block chance is between 0 and 1
+      return Math.max(0, Math.min(blockChance, 0.15));
     },
     calcRebounder(team) {
       let reboundChances = [];
       let totalReboundScore = 0;
 
-      // Calculate rebound scores for each player
       team.forEach((player) => {
-        const reboundScore =
+        // Adjust rebounding score based on player position
+        let reboundScore =
           player.attributes.defense.def_rebound +
           player.attributes.offense.off_rebound;
+
+        // Penalize guards, boost big men
+        if (player.position === 'PG' || player.position === 'SG') {
+          reboundScore *= 0.7; // Guards get a penalty
+        } else if (player.position === 'C' || player.position === 'PF') {
+          reboundScore *= 1.3; // Big men get a bonus
+        }
+
         reboundChances.push(reboundScore);
         totalReboundScore += reboundScore;
       });
@@ -807,10 +587,10 @@ export default {
         (score) => score / totalReboundScore
       );
 
-      const chance = Math.random(); // Generate a random number between 0 and 1
+      const chance = Math.random();
       let cumulativeProbability = 0;
 
-      // Determine the rebounder based on the random chance
+      // Determine the rebounder based on probabilities
       for (let i = 0; i < probabilities.length; i++) {
         cumulativeProbability += probabilities[i];
         if (chance <= cumulativeProbability) {
@@ -820,7 +600,6 @@ export default {
 
       return team[team.length - 1]; // Fallback to the last player in case of rounding issues
     },
-
     logRebounds(string) {
       this.gameLog.unshift(
         string[Math.floor(Math.random() * string.length)] +
@@ -864,6 +643,77 @@ export default {
           12;
       });
       return parseFloat(teamDefense.toFixed(2));
+    },
+    updateScoreAndLog(player, points, type) {
+      const assistChance = Math.random();
+      let assistingPlayer = null;
+
+      if (assistChance < 0.45) {
+        // Determine assisting player
+        if (this.possession === 0) {
+          assistingPlayer = this.calcAssist(this.teams.teamOne, player);
+          this.teamStats.teamOne.assists++;
+          this.playerStatTemplate.teamOne[assistingPlayer.name].assists++;
+        } else {
+          assistingPlayer = this.calcAssist(this.teams.teamTwo, player);
+          this.teamStats.teamTwo.assists++;
+          this.playerStatTemplate.teamTwo[assistingPlayer.name].assists++;
+        }
+      }
+
+      const currentTeamStats =
+        this.possession === 0 ? this.teamStats.teamOne : this.teamStats.teamTwo;
+      const currentPlayerStats =
+        this.possession === 0
+          ? this.playerStatTemplate.teamOne[player.name]
+          : this.playerStatTemplate.teamTwo[player.name];
+
+      currentTeamStats.points += points;
+      currentPlayerStats.points += points;
+      currentPlayerStats.fga++;
+      currentPlayerStats.fgm++;
+      if (type === 'shoot_three') {
+        currentTeamStats.threeA++;
+        currentTeamStats.threeM++;
+        currentPlayerStats.threeA++;
+        currentPlayerStats.threeM++;
+      }
+
+      if (this.possession === 0) {
+        this.gameScore.teamOne += points;
+      } else {
+        this.gameScore.teamTwo += points;
+      }
+
+      const message = assistingPlayer
+        ? `${player.name} scores! Assisted by ${assistingPlayer.name}.`
+        : `${player.name} scores!`;
+      this.gameLog.unshift(
+        `${message} ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+      );
+
+      this.possession = 1 - this.possession;
+    },
+    updateMissedShotStats(player, type) {
+      const currentPlayerStats =
+        this.possession === 0
+          ? this.playerStatTemplate.teamOne[player.name]
+          : this.playerStatTemplate.teamTwo[player.name];
+      const currentTeamStats =
+        this.possession === 0 ? this.teamStats.teamOne : this.teamStats.teamTwo;
+
+      currentPlayerStats.fga++;
+      currentTeamStats.fga++;
+
+      if (type === 'shoot_three') {
+        currentTeamStats.threeA++;
+        currentPlayerStats.threeA++;
+      }
+
+      const missMessage = `${player.name} misses the shot.`;
+      this.gameLog.unshift(
+        `${missMessage} ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+      );
     },
     logSteal(stealPlayer, turnoverPlayer) {
       const messageVariation = [
@@ -915,6 +765,15 @@ export default {
     },
 
     assignToTeams(team1, team2) {
+      const positionsTeamOne = ['C', 'PF', 'SF', 'SG', 'PG'];
+      const positionsTeamTwo = ['C', 'PF', 'SF', 'SG', 'PG'];
+
+      team1.forEach((player, index) => {
+        player.position = positionsTeamOne[index % positionsTeamOne.length];
+      });
+      team2.forEach((player, index) => {
+        player.position = positionsTeamTwo[index % positionsTeamTwo.length];
+      });
       let teamOne = {};
       let teamTwo = {};
       team1.forEach((e) => {
@@ -985,8 +844,8 @@ export default {
       }
 
       this.shootBall(currentPlayer, shotType, matchup);
-      if (this.gameScore.teamOne < 10 && this.gameScore.teamTwo < 10) {
-        setTimeout(this.gameCycle, 200);
+      if (this.gameScore.teamOne < 100 && this.gameScore.teamTwo < 100) {
+        setTimeout(this.gameCycle, 50);
         return;
       }
       this.gameInProgress = false;
