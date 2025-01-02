@@ -1,30 +1,69 @@
 <template>
   <div class="game-ui">
     <div class="middle-container">
-      <div class="team1">
+      <!-- Home Team Section -->
+      <div class="team">
         <h2>Home</h2>
         <div
-          class="team-2-players"
           v-for="player in teams.teamOne"
           :key="player.id"
+          class="player-row"
         >
-          <div class="mid-section">
-            <div class="p1-container">{{ player.name }}</div>
-            <div class="stat-box">
-              <table>
+          <div class="player-name">{{ player.name }}</div>
+          <div class="stat-box">
+            <table>
+              <thead>
                 <tr>
+                  <th>FGM/FGA</th>
+                  <th>FG%</th>
+                  <th>3PM/3PA</th>
+                  <th>3P%</th>
                   <th>Points</th>
                   <th>Reb</th>
-                  <th>Assists</th>
-                  <th>Steals</th>
-                  <th>Blocks</th>
+                  <th>Ast</th>
+                  <th>Stl</th>
+                  <th>Blk</th>
                   <th>TO</th>
-                  <th>FG%</th>
-                  <th>3P%</th>
-                  <th>FGM/FGA</th>
-                  <th>3PM/3PA</th>
                 </tr>
+              </thead>
+              <tbody>
                 <tr>
+                  <td>
+                    {{
+                      playerStatTemplate.teamOne[player.name].fgm +
+                      '/' +
+                      playerStatTemplate.teamOne[player.name].fga
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamOne[player.name].fga > 0
+                        ? Math.ceil(
+                            (playerStatTemplate.teamOne[player.name].fgm /
+                              playerStatTemplate.teamOne[player.name].fga) *
+                              100
+                          ) + '%'
+                        : '0%'
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamOne[player.name].threeM +
+                      '/' +
+                      playerStatTemplate.teamOne[player.name].threeA
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamOne[player.name].threeA > 0
+                        ? Math.ceil(
+                            (playerStatTemplate.teamOne[player.name].threeM /
+                              playerStatTemplate.teamOne[player.name].threeA) *
+                              100
+                          ) + '%'
+                        : '0%'
+                    }}
+                  </td>
                   <td>{{ playerStatTemplate.teamOne[player.name].points }}</td>
                   <td>
                     {{ playerStatTemplate.teamOne[player.name].rebounds }}
@@ -35,81 +74,140 @@
                   <td>
                     {{ playerStatTemplate.teamOne[player.name].turnovers }}
                   </td>
-                  <td v-if="playerStatTemplate.teamOne[player.name].fga !== 0">
-                    <span>%</span
-                    >{{
-                      Math.ceil(
-                        (playerStatTemplate.teamOne[player.name].fgm /
-                          playerStatTemplate.teamOne[player.name].fga) *
-                          100
-                      )
-                    }}
-                  </td>
-                  <td v-else>%0</td>
-                  <td
-                    v-if="playerStatTemplate.teamOne[player.name].threeA !== 0"
-                  >
-                    <span>%</span
-                    >{{
-                      Math.ceil(
-                        (playerStatTemplate.teamOne[player.name].threeM /
-                          playerStatTemplate.teamOne[player.name].threeA) *
-                          100
-                      )
-                    }}
-                  </td>
-                  <td v-else>%0</td>
-                  <td>
-                    {{
-                      playerStatTemplate.teamOne[player.name].fgm +
-                      '/' +
-                      playerStatTemplate.teamOne[player.name].fga
-                    }}
-                  </td>
-                  <td>
-                    {{
-                      playerStatTemplate.teamOne[player.name].threeM +
-                      '/' +
-                      playerStatTemplate.teamOne[player.name].threeA
-                    }}
-                  </td>
                 </tr>
-              </table>
-            </div>
+              </tbody>
+            </table>
           </div>
         </div>
+
+        <!-- Team Totals -->
+        <div class="team-totals">
+          <h3>TOTAL</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>FGM/FGA</th>
+                <th>FG%</th>
+                <th>3PM/3PA</th>
+                <th>3P%</th>
+                <th>Points</th>
+                <th>Reb</th>
+                <th>Ast</th>
+                <th>Stl</th>
+                <th>Blk</th>
+                <th>TO</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ teamStats.teamOne.fgm }}/{{ teamStats.teamOne.fga }}</td>
+                <td>
+                  {{
+                    teamStats.teamOne.fga > 0
+                      ? Math.ceil(
+                          (teamStats.teamOne.fgm / teamStats.teamOne.fga) * 100
+                        ) + '%'
+                      : '0%'
+                  }}
+                </td>
+                <td>
+                  {{ teamStats.teamOne.threeM }}/{{ teamStats.teamOne.threeA }}
+                </td>
+                <td>
+                  {{
+                    teamStats.teamOne.threeA > 0
+                      ? Math.ceil(
+                          (teamStats.teamOne.threeM /
+                            teamStats.teamOne.threeA) *
+                            100
+                        ) + '%'
+                      : '0%'
+                  }}
+                </td>
+                <td>{{ teamStats.teamOne.points }}</td>
+                <td>{{ teamStats.teamOne.rebounds }}</td>
+                <td>{{ teamStats.teamOne.assists }}</td>
+                <td>{{ teamStats.teamOne.steals }}</td>
+                <td>{{ teamStats.teamOne.blocks }}</td>
+                <td>{{ teamStats.teamOne.turnovers }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
       <div class="center">
         <div class="score">
           {{ gameScore.teamOne }} : {{ gameScore.teamTwo }}
         </div>
-        <div class="ball"><img src="../assets/ball.png" alt="" /></div>
+        <div class="ball">
+          <img src="../assets/ball.png" alt="Basketball" />
+        </div>
       </div>
 
-      <div class="team2">
+      <!-- Away Team Section -->
+      <div class="team">
         <h2>Away</h2>
         <div
-          class="team-2-players"
           v-for="player in teams.teamTwo"
           :key="player.id"
+          class="player-row"
         >
-          <div class="mid-section">
-            <div class="p2-container">{{ player.name }}</div>
-            <div class="stat-box">
-              <table>
+          <div class="player-name">{{ player.name }}</div>
+          <div class="stat-box">
+            <table>
+              <thead>
                 <tr>
+                  <th>FGM/FGA</th>
+                  <th>FG%</th>
+                  <th>3PM/3PA</th>
+                  <th>3P%</th>
                   <th>Points</th>
                   <th>Reb</th>
-                  <th>Assists</th>
-                  <th>Steals</th>
-                  <th>Blocks</th>
+                  <th>Ast</th>
+                  <th>Stl</th>
+                  <th>Blk</th>
                   <th>TO</th>
-                  <th>FG%</th>
-                  <th>3P%</th>
-                  <th>FGM/FGA</th>
-                  <th>3PM/3PA</th>
                 </tr>
+              </thead>
+              <tbody>
                 <tr>
+                  <td>
+                    {{
+                      playerStatTemplate.teamTwo[player.name].fgm +
+                      '/' +
+                      playerStatTemplate.teamTwo[player.name].fga
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamTwo[player.name].fga > 0
+                        ? Math.ceil(
+                            (playerStatTemplate.teamTwo[player.name].fgm /
+                              playerStatTemplate.teamTwo[player.name].fga) *
+                              100
+                          ) + '%'
+                        : '0%'
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamTwo[player.name].threeM +
+                      '/' +
+                      playerStatTemplate.teamTwo[player.name].threeA
+                    }}
+                  </td>
+                  <td>
+                    {{
+                      playerStatTemplate.teamTwo[player.name].threeA > 0
+                        ? Math.ceil(
+                            (playerStatTemplate.teamTwo[player.name].threeM /
+                              playerStatTemplate.teamTwo[player.name].threeA) *
+                              100
+                          ) + '%'
+                        : '0%'
+                    }}
+                  </td>
                   <td>{{ playerStatTemplate.teamTwo[player.name].points }}</td>
                   <td>
                     {{ playerStatTemplate.teamTwo[player.name].rebounds }}
@@ -120,55 +218,87 @@
                   <td>
                     {{ playerStatTemplate.teamTwo[player.name].turnovers }}
                   </td>
-                  <td v-if="playerStatTemplate.teamTwo[player.name].fga !== 0">
-                    <span>%</span
-                    >{{
-                      Math.ceil(
-                        (playerStatTemplate.teamTwo[player.name].fgm /
-                          playerStatTemplate.teamTwo[player.name].fga) *
-                          100
-                      )
-                    }}
-                  </td>
-                  <td v-else>%0</td>
-                  <td
-                    v-if="playerStatTemplate.teamTwo[player.name].threeA !== 0"
-                  >
-                    <span>%</span
-                    >{{
-                      Math.ceil(
-                        (playerStatTemplate.teamTwo[player.name].threeM /
-                          playerStatTemplate.teamTwo[player.name].threeA) *
-                          100
-                      )
-                    }}
-                  </td>
-                  <td v-else>%0</td>
-                  <td>
-                    {{
-                      playerStatTemplate.teamTwo[player.name].fgm +
-                      '/' +
-                      playerStatTemplate.teamTwo[player.name].fga
-                    }}
-                  </td>
-                  <td>
-                    {{
-                      playerStatTemplate.teamTwo[player.name].threeM +
-                      '/' +
-                      playerStatTemplate.teamTwo[player.name].threeA
-                    }}
-                  </td>
                 </tr>
-              </table>
-            </div>
+              </tbody>
+            </table>
           </div>
+        </div>
+
+        <!-- Team Totals -->
+        <div class="team-totals">
+          <h3>TOTAL</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>FGM/FGA</th>
+                <th>FG%</th>
+                <th>3PM/3PA</th>
+                <th>3P%</th>
+                <th>Points</th>
+                <th>Reb</th>
+                <th>Ast</th>
+                <th>Stl</th>
+                <th>Blk</th>
+                <th>TO</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ teamStats.teamTwo.fgm }}/{{ teamStats.teamTwo.fga }}</td>
+                <td>
+                  {{
+                    teamStats.teamTwo.fga > 0
+                      ? Math.ceil(
+                          (teamStats.teamTwo.fgm / teamStats.teamTwo.fga) * 100
+                        ) + '%'
+                      : '0%'
+                  }}
+                </td>
+                <td>
+                  {{ teamStats.teamTwo.threeM }}/{{ teamStats.teamTwo.threeA }}
+                </td>
+                <td>
+                  {{
+                    teamStats.teamTwo.threeA > 0
+                      ? Math.ceil(
+                          (teamStats.teamTwo.threeM /
+                            teamStats.teamTwo.threeA) *
+                            100
+                        ) + '%'
+                      : '0%'
+                  }}
+                </td>
+                <td>{{ teamStats.teamTwo.points }}</td>
+                <td>{{ teamStats.teamTwo.rebounds }}</td>
+                <td>{{ teamStats.teamTwo.assists }}</td>
+                <td>{{ teamStats.teamTwo.steals }}</td>
+                <td>{{ teamStats.teamTwo.blocks }}</td>
+                <td>{{ teamStats.teamTwo.turnovers }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
+    <div class="log-container">
+      <div class="log-row" v-for="(log, index) in gameLog" :key="index">
+        <!-- Home Log -->
+        <div class="log-entry home-log" v-if="log.team === 'home'">
+          <span class="team-log home">{{ log.message }}</span>
+        </div>
+        <div class="log-empty" v-else></div>
 
-    <div class="log">
-      <div class="line" v-for="line in gameLog" :key="line.id">
-        {{ line }}
+        <!-- Score in the Middle (only for scoring events) -->
+        <div class="log-score" v-if="log.score">
+          <span>{{ log.score }}</span>
+        </div>
+        <div class="log-empty" v-else></div>
+
+        <!-- Away Log -->
+        <div class="log-empty" v-if="log.team === 'home'"></div>
+        <div class="log-entry away-log" v-else>
+          <span class="team-log away">{{ log.message }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -191,6 +321,8 @@ export default {
     return {
       gameObject: {},
       gameLog: [],
+      homeLog: [],
+      awayLog: [],
       record: {},
       possession: null,
       gameInProgress: false,
@@ -235,6 +367,26 @@ export default {
     }
   },
   methods: {
+    addLog(team, message, isScoringEvent = false) {
+      const logEntry = {
+        team,
+        message
+      };
+
+      // Add score only for scoring events
+      if (isScoringEvent) {
+        logEntry.score = `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`;
+      }
+
+      this.gameLog.unshift(logEntry);
+
+      if (team === 'home') {
+        this.homeLog.unshift(message);
+      } else if (team === 'away') {
+        this.awayLog.unshift(message);
+      }
+    },
+
     countdown() {
       this.startGame();
     },
@@ -358,7 +510,6 @@ export default {
       let defensiveContest;
       let layupDunk = '';
 
-      // Determine shot percentage based on shot type
       switch (type) {
         case 'attack_rim':
           defensiveContest =
@@ -376,7 +527,6 @@ export default {
             defaultPercentages[0]
           );
           break;
-
         case 'shoot_mid':
           defensiveContest =
             (matchup.attributes.defense.outside_defense +
@@ -389,7 +539,6 @@ export default {
             defaultPercentages[1]
           );
           break;
-
         case 'shoot_three':
           defensiveContest =
             (matchup.attributes.defense.outside_defense +
@@ -402,7 +551,6 @@ export default {
             defaultPercentages[2]
           );
           break;
-
         case 'post_up':
           defensiveContest =
             (matchup.attributes.defense.post_defense +
@@ -417,40 +565,13 @@ export default {
           break;
       }
 
-      // Calculate if the shot is made or missed
       const makeOrMiss = this.shoot(percentage);
 
       if (makeOrMiss === 'make') {
-        // Scoring logic
         const points = type === 'shoot_three' ? 3 : 2;
         this.updateScoreAndLog(player, points, type);
       } else {
-        // Calculate block chance
-        const blockChance = this.calcBlockChance(player, matchup, type);
-        if (Math.random() < blockChance) {
-          // If shot is blocked
-          const blockerStats =
-            this.possession === 0
-              ? this.playerStatTemplate.teamTwo[matchup.name]
-              : this.playerStatTemplate.teamOne[matchup.name];
-          const blockerTeamStats =
-            this.possession === 0
-              ? this.teamStats.teamTwo
-              : this.teamStats.teamOne;
-
-          blockerStats.blocks++;
-          blockerTeamStats.blocks++;
-
-          const blockMessage = `${matchup.name} blocks ${player.name}'s shot!`;
-          this.gameLog.unshift(
-            `${blockMessage} ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-          );
-        } else {
-          // If not blocked, update missed shot stats
-          this.updateMissedShotStats(player, type);
-        }
-
-        // Handle rebounds after a missed or blocked shot
+        this.updateMissedShotStats(player, type);
         this.rebound(this.teams.teamOne, this.teams.teamTwo);
       }
     },
@@ -488,7 +609,7 @@ export default {
       }
     },
     rebound(team1, team2) {
-      // Team 1
+      // Helper function to calculate rebound chances
       const calcRebound = (team) => {
         let def = 0;
         let off = 0;
@@ -501,6 +622,7 @@ export default {
         return [teamDefRebound, teamOffRebound];
       };
 
+      // Calculate rebound chances for both teams
       const [teamOneDefRebound, teamOneOffRebound] = calcRebound(team1);
       const [teamTwoDefRebound, teamTwoOffRebound] = calcRebound(team2);
 
@@ -522,18 +644,12 @@ export default {
           rebounder = this.calcRebounder(team1);
           this.playerStatTemplate.teamOne[`${rebounder.name}`].rebounds++;
           this.teamStats.teamOne.rebounds++;
-          this.gameLog.unshift(
-            `${rebounder.name} grabs offensive rebound. ` +
-              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-          );
+          this.addLog('home', `${rebounder.name} grabs offensive rebound.`);
         } else {
           rebounder = this.calcRebounder(team2);
           this.playerStatTemplate.teamTwo[`${rebounder.name}`].rebounds++;
           this.teamStats.teamTwo.rebounds++;
-          this.gameLog.unshift(
-            `${rebounder.name} grabs defensive rebound. ` +
-              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-          );
+          this.addLog('away', `${rebounder.name} grabs defensive rebound.`);
           this.possession = 1; // Change possession
         }
       } else {
@@ -549,17 +665,17 @@ export default {
           rebounder = this.calcRebounder(team2);
           this.playerStatTemplate.teamTwo[`${rebounder.name}`].rebounds++;
           this.teamStats.teamTwo.rebounds++;
-          this.gameLog.unshift(
-            `${rebounder.name} grabs offensive rebound. ` +
-              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          this.addLog(
+            'away',
+            `${rebounder.name} grabs offensive rebound. ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
           );
         } else {
           rebounder = this.calcRebounder(team1);
           this.playerStatTemplate.teamOne[`${rebounder.name}`].rebounds++;
           this.teamStats.teamOne.rebounds++;
-          this.gameLog.unshift(
-            `${rebounder.name} grabs defensive rebound. ` +
-              `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          this.addLog(
+            'home',
+            `${rebounder.name} grabs defensive rebound. ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
           );
           this.possession = 0; // Change possession
         }
@@ -679,86 +795,75 @@ export default {
       return parseFloat(teamDefense.toFixed(2));
     },
     updateScoreAndLog(player, points, type) {
-      const assistChance = Math.random();
-      let assistingPlayer = null;
+      const isTeamOne = this.possession === 0;
 
-      if (assistChance < 0.45) {
-        // Determine assisting player
-        if (this.possession === 0) {
-          assistingPlayer = this.calcAssist(this.teams.teamOne, player);
-          this.teamStats.teamOne.assists++;
-          this.playerStatTemplate.teamOne[assistingPlayer.name].assists++;
-        } else {
-          assistingPlayer = this.calcAssist(this.teams.teamTwo, player);
-          this.teamStats.teamTwo.assists++;
-          this.playerStatTemplate.teamTwo[assistingPlayer.name].assists++;
-        }
-      }
-
-      const currentTeamStats =
-        this.possession === 0 ? this.teamStats.teamOne : this.teamStats.teamTwo;
-      const currentPlayerStats =
-        this.possession === 0
-          ? this.playerStatTemplate.teamOne[player.name]
-          : this.playerStatTemplate.teamTwo[player.name];
-
-      currentTeamStats.points += points;
-      currentPlayerStats.points += points;
-      currentPlayerStats.fga++;
-      currentPlayerStats.fgm++;
+      // Update the respective team stats
+      const teamStats = isTeamOne
+        ? this.teamStats.teamOne
+        : this.teamStats.teamTwo;
+      teamStats.points += points;
+      teamStats.fgm++;
+      teamStats.fga++;
       if (type === 'shoot_three') {
-        currentTeamStats.threeA++;
-        currentTeamStats.threeM++;
-        currentPlayerStats.threeA++;
-        currentPlayerStats.threeM++;
+        teamStats.threeA++;
+        teamStats.threeM++;
       }
 
-      if (this.possession === 0) {
+      // Update individual player stats
+      const playerStats = isTeamOne
+        ? this.playerStatTemplate.teamOne[player.name]
+        : this.playerStatTemplate.teamTwo[player.name];
+      playerStats.points += points;
+      playerStats.fga++;
+      playerStats.fgm++;
+      if (type === 'shoot_three') {
+        playerStats.threeA++;
+        playerStats.threeM++;
+      }
+      const message = `${player.name} scores ${points} points!`;
+
+      // Update game score
+      if (isTeamOne) {
         this.gameScore.teamOne += points;
+        this.addLog('home', message, true);
       } else {
         this.gameScore.teamTwo += points;
+        this.addLog('away', message, true);
       }
-
-      const message = assistingPlayer
-        ? `${player.name} scores! Assisted by ${assistingPlayer.name}.`
-        : `${player.name} scores!`;
-      this.gameLog.unshift(
-        `${message} ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-      );
-
-      this.possession = 1 - this.possession;
     },
     updateMissedShotStats(player, type) {
-      const currentPlayerStats =
-        this.possession === 0
-          ? this.playerStatTemplate.teamOne[player.name]
-          : this.playerStatTemplate.teamTwo[player.name];
-      const currentTeamStats =
-        this.possession === 0 ? this.teamStats.teamOne : this.teamStats.teamTwo;
+      const message = `${player.name} misses a ${type.replace('_', ' ')}!`;
+      const isTeamOne = this.possession === 0; // Determine if possession is with Team One
+      const currentPlayerStats = isTeamOne
+        ? this.playerStatTemplate.teamOne[player.name]
+        : this.playerStatTemplate.teamTwo[player.name];
+      const currentTeamStats = isTeamOne
+        ? this.teamStats.teamOne
+        : this.teamStats.teamTwo;
 
+      // Update missed shot stats
       currentPlayerStats.fga++;
       currentTeamStats.fga++;
 
       if (type === 'shoot_three') {
-        currentTeamStats.threeA++;
         currentPlayerStats.threeA++;
+        currentTeamStats.threeA++;
       }
-
-      const missMessage = `${player.name} misses the shot.`;
-      this.gameLog.unshift(
-        `${missMessage} ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-      );
+      if (isTeamOne) {
+        this.addLog('home', message);
+      } else {
+        this.addLog('away', message);
+      }
     },
     logSteal(stealPlayer, turnoverPlayer) {
-      const messageVariation = [
-        `${stealPlayer.name} stole the ball from ${turnoverPlayer.name}. `,
-        `${stealPlayer.name} intercepts a sloppy entry pass by ${turnoverPlayer.name}. `,
-        `${turnoverPlayer.name} with a turnover. ${stealPlayer.name} with a steal. `
-      ];
-      this.gameLog.unshift(
-        messageVariation[Math.floor(Math.random() * messageVariation.length)] +
-          `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-      );
+      const isTeamOne = this.possession === 0;
+      const message = `${stealPlayer.name} stole the ball from ${turnoverPlayer.name}.`;
+
+      if (isTeamOne) {
+        this.addLog('home', message);
+      } else {
+        this.addLog('away', message);
+      }
     },
     calcAssist(team, currentPlayer) {
       let assistScores = [];
@@ -933,55 +1038,99 @@ export default {
 };
 </script>
 
-
 <style scoped>
 .game-ui {
   font-family: 'Share', cursive;
-}
-.middle-container {
-  display: flex;
-  justify-content: space-around;
-  text-shadow: 2px 2px 2px black;
-  align-items: center;
-}
-
-.team1,
-.team2 {
+  background-color: #222;
+  color: white;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  border: 2px solid white;
-  border-radius: 1rem;
-  text-shadow: 2px 2px 2px black;
-  background-color: rgb(71, 71, 71);
-  min-width: 32rem;
-  min-height: 18rem;
-  border-radius: 0.7rem;
-  font-size: 1.4rem;
-  margin: 1rem;
+  justify-content: space-between;
+  height: 100vh; /* Ensure it occupies the full height */
 }
-.mid-section {
+
+.middle-container {
   display: flex;
   justify-content: space-between;
-  padding: 1.3rem;
+  align-items: center;
+  margin-bottom: 1rem;
 }
+
+.team {
+  background-color: #333;
+  padding: 1rem;
+  border-radius: 8px;
+  width: 45%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
 h2 {
   text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.stat-box {
+  flex: 8;
+  background-color: #444;
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
 }
 
 table {
-  font-size: 0.8rem;
+  width: 100%;
   text-align: center;
+  border-collapse: collapse;
+  color: white;
 }
+
+th,
+td {
+  padding: 0.3rem;
+  border: 1px solid #555;
+  font-size: 0.9rem;
+}
+
 th {
-  width: 2.2rem;
-  border-bottom: 2px solid black;
+  background-color: #555;
+  color: white;
 }
-.ball > img {
-  width: 10rem;
-  animation-name: spin;
-  animation-duration: 5000ms;
-  animation-iteration-count: infinite;
-  animation-timing-function: linear;
+
+.team-totals {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #555;
+  color: white;
+  padding: 0.5rem;
+  margin-top: 1rem;
+  border-top: 2px solid white;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 10%;
+}
+
+.score {
+  font-size: 3rem;
+  background-color: #444;
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.ball img {
+  width: 6rem;
+  animation: spin 5s infinite linear;
 }
 
 @keyframes spin {
@@ -992,23 +1141,94 @@ th {
     transform: rotate(360deg);
   }
 }
-
-.log {
-  width: 90%;
-  overflow: auto;
-  height: 40vh;
-  background-color: rgb(80, 80, 80);
-  margin: 2.5rem auto;
-  border-radius: 2rem;
-  border: 2px solid white;
+.log-container {
+  display: flex;
+  flex-direction: column;
+  background-color: #222;
+  width: 100%;
+  height: 30vh;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  overflow-y: auto;
+  border: 1px solid #555;
 }
 
-.line {
-  margin: 0.5rem 24vw;
+.log-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.5rem 0;
+  height: auto; /* Ensures logs adjust dynamically */
 }
 
-.score {
-  font-size: 2.7rem;
+.log-entry {
+  width: 45%; /* Each log occupies 45% of the row width */
+  text-align: left;
+}
+
+.log-empty {
+  width: 45%; /* Empty space for alignment */
+  height: 100%; /* Ensures alignment with other rows */
+}
+
+.log-score {
+  width: 10%; /* Score occupies the middle 10% */
   text-align: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+}
+
+.home-log {
+  display: flex;
+  justify-content: flex-end; /* Align home log text to the right */
+  text-align: right;
+}
+
+.away-log {
+  display: flex;
+  justify-content: flex-start; /* Align away log text to the left */
+  text-align: left;
+}
+
+.team-log {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.home-log .team-log {
+  background-color: #333; /* Home log background color */
+  color: white;
+}
+
+.away-log .team-log {
+  background-color: #444; /* Away log background color */
+  color: white;
+}
+
+.log-score span {
+  background-color: transparent; /* No background for the score */
+  color: #fff;
+  padding: 0.5rem;
+  border-radius: 5px;
+}
+
+.log-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.log-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 10px;
+}
+
+.log-container::-webkit-scrollbar-track {
+  background: #222;
 }
 </style>
