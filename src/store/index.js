@@ -42,6 +42,9 @@ export default createStore({
         state.teams.teamTwo.push(...legends);
       }
     },
+    resetTeams(state, teams) {
+      state.teams = { ...teams };
+    },
     reset(state) {
       state.teams = {
         teamOne: [],

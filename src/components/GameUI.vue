@@ -1,5 +1,8 @@
 <template>
   <div class="game-ui">
+    <div class="restart-container">
+      <button @click="restartGame" class="restart-button">Restart Game</button>
+    </div>
     <div class="middle-container">
       <!-- Home Team Section -->
       <div class="team">
@@ -367,6 +370,89 @@ export default {
     }
   },
   methods: {
+    restartGame() {
+      // Reset scores
+      this.gameScore = { teamOne: 0, teamTwo: 0 };
+
+      // Clear logs
+      this.gameLog = [];
+      this.homeLog = [];
+      this.awayLog = [];
+
+      // Reset team stats
+      this.teamStats = {
+        teamOne: {
+          points: 0,
+          rebounds: 0,
+          assists: 0,
+          steals: 0,
+          blocks: 0,
+          turnovers: 0,
+          fgm: 0,
+          fga: 0,
+          threeA: 0,
+          threeM: 0
+        },
+        teamTwo: {
+          points: 0,
+          rebounds: 0,
+          assists: 0,
+          steals: 0,
+          blocks: 0,
+          turnovers: 0,
+          fgm: 0,
+          fga: 0,
+          threeA: 0,
+          threeM: 0
+        }
+      };
+
+      const initialTeams = {
+        teamOne: this.$store.state.teams.teamOne.map((player) => ({
+          ...player,
+          stats: {
+            points: 0,
+            rebounds: 0,
+            assists: 0,
+            steals: 0,
+            blocks: 0,
+            turnovers: 0,
+            fgm: 0,
+            fga: 0,
+            threeA: 0,
+            threeM: 0
+          }
+        })),
+        teamTwo: this.$store.state.teams.teamTwo.map((player) => ({
+          ...player,
+          stats: {
+            points: 0,
+            rebounds: 0,
+            assists: 0,
+            steals: 0,
+            blocks: 0,
+            turnovers: 0,
+            fgm: 0,
+            fga: 0,
+            threeA: 0,
+            threeM: 0
+          }
+        }))
+      };
+
+      this.$store.commit('resetTeams', initialTeams);
+
+      // Reset player stats
+      this.playerStatTemplate = this.assignToTeams(
+        this.teams.teamOne,
+        this.teams.teamTwo
+      );
+
+      // Reset possession and game state
+      this.possession = null;
+      this.gameInProgress = false;
+      this.startGame();
+    },
     addLog(team, message, isScoringEvent = false) {
       const logEntry = {
         team,
@@ -826,9 +912,11 @@ export default {
       if (isTeamOne) {
         this.gameScore.teamOne += points;
         this.addLog('home', message, true);
+        this.possession = 1;
       } else {
         this.gameScore.teamTwo += points;
         this.addLog('away', message, true);
+        this.possession = 0;
       }
     },
     updateMissedShotStats(player, type) {
@@ -913,10 +1001,12 @@ export default {
       team2.forEach((player, index) => {
         player.position = positionsTeamTwo[index % positionsTeamTwo.length];
       });
+
       let teamOne = {};
       let teamTwo = {};
-      team1.forEach((e) => {
-        teamOne[`${e.name}`] = {
+
+      team1.forEach((player) => {
+        teamOne[player.name] = {
           points: 0,
           rebounds: 0,
           assists: 0,
@@ -929,8 +1019,9 @@ export default {
           threeM: 0
         };
       });
-      team2.forEach((e) => {
-        teamTwo[`${e.name}`] = {
+
+      team2.forEach((player) => {
+        teamTwo[player.name] = {
           points: 0,
           rebounds: 0,
           assists: 0,
@@ -1230,5 +1321,26 @@ th {
 
 .log-container::-webkit-scrollbar-track {
   background: #222;
+}
+
+.restart-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.restart-button {
+  background-color: #555;
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.restart-button:hover {
+  background-color: #777;
 }
 </style>
