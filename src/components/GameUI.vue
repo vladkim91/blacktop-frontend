@@ -552,6 +552,8 @@ export default {
       return probabilities.length - 1; // Fallback in case of rounding errors
     },
     pickTypeOfShot(player) {
+      if (player.name == 'Scottie Pippen') console.log('SP miss');
+      if (player.name == 'Kevin Garnett') console.log('KG miss');
       let rim = 0;
       let mid = 0;
       let three = 0;
@@ -574,27 +576,58 @@ export default {
     },
     calcChanceShotType(shot1, shot2, shot3, shot4) {
       const sum = shot1 + shot2 + shot3 + shot4;
+
+      if (sum === 0) {
+        console.error('Error: All shot tendencies are zero!');
+        return null; // Handle invalid input gracefully
+      }
+
       const rim = parseFloat((shot1 / sum).toFixed(2));
       const mid = parseFloat((shot2 / sum).toFixed(2));
       const three = parseFloat((shot3 / sum).toFixed(2));
       const post = parseFloat((shot4 / sum).toFixed(2));
-      const chance = Math.random().toFixed(2);
+      const chance = Math.random() * (rim + mid + three + post);
 
-      if (chance < rim) {
+      // Calculate cumulative probabilities for debugging
+      const rimCondition = chance < rim;
+      const midCondition = chance >= rim && chance < rim + mid;
+      const threeCondition = chance >= rim + mid && chance < rim + mid + three;
+      const postCondition =
+        chance >= rim + mid + three && chance < rim + mid + three + post;
+
+      // Log the debugging information
+      console.log(`Debug Info:
+    Chance: ${chance}
+    Rim: ${rim} (${rimCondition})
+    Mid: ${mid} (${midCondition})
+    Three: ${three} (${threeCondition})
+    Post: ${post} (${postCondition})
+    Sum: ${sum}
+  `);
+
+      // Return based on conditions
+      if (rimCondition) {
         return 'attack_rim';
-      } else if (chance >= rim && chance < rim + mid) {
+      } else if (midCondition) {
         return 'shoot_mid';
-      } else if (chance >= rim + mid && chance < rim + mid + three) {
+      } else if (threeCondition) {
         return 'shoot_three';
-      } else if (chance >= 1 - post) {
+      } else if (postCondition) {
         return 'post_up';
       }
+
+      // Fallback in case none of the conditions are met
+      console.warn(
+        'Fallback: None of the conditions met. Defaulting to attack_rim.'
+      );
+      // return 'attack_rim';
     },
     shootBall(player, type, matchup) {
       const defaultPercentages = [0.45, 0.35, 0.27, 0.4];
       let percentage;
       let defensiveContest;
       let layupDunk = '';
+      // if (type == 'unknown') console.log('test');
 
       switch (type) {
         case 'attack_rim':
@@ -658,6 +691,7 @@ export default {
         this.updateScoreAndLog(player, points, type);
       } else {
         this.updateMissedShotStats(player, type);
+
         this.rebound(this.teams.teamOne, this.teams.teamTwo);
       }
     },
@@ -1047,6 +1081,7 @@ export default {
       let steal;
       if (this.possession === 1) {
         const currentPlayerIndex = this.checkShootPass(this.teams.teamTwo);
+
         shotType = this.pickTypeOfShot(this.teams.teamTwo[currentPlayerIndex]);
         currentPlayer = this.teams.teamTwo[currentPlayerIndex];
         matchup = this.teams.teamOne[currentPlayerIndex];
@@ -1075,9 +1110,11 @@ export default {
 
       this.shootBall(currentPlayer, shotType, matchup);
       if (this.gameScore.teamOne < 100 && this.gameScore.teamTwo < 100) {
-        setTimeout(this.gameCycle, 50);
+        setTimeout(this.gameCycle, 0);
+
         return;
       }
+
       this.gameInProgress = false;
       this.getTeamById(JSON.parse(localStorage.getItem('team_name')).id);
       this.createGame(this.createGameObject());
