@@ -552,8 +552,6 @@ export default {
       return probabilities.length - 1; // Fallback in case of rounding errors
     },
     pickTypeOfShot(player) {
-      if (player.name == 'Scottie Pippen') console.log('SP miss');
-      if (player.name == 'Kevin Garnett') console.log('KG miss');
       let rim = 0;
       let mid = 0;
       let three = 0;
@@ -577,11 +575,6 @@ export default {
     calcChanceShotType(shot1, shot2, shot3, shot4) {
       const sum = shot1 + shot2 + shot3 + shot4;
 
-      if (sum === 0) {
-        console.error('Error: All shot tendencies are zero!');
-        return null; // Handle invalid input gracefully
-      }
-
       const rim = parseFloat((shot1 / sum).toFixed(2));
       const mid = parseFloat((shot2 / sum).toFixed(2));
       const three = parseFloat((shot3 / sum).toFixed(2));
@@ -596,14 +589,6 @@ export default {
         chance >= rim + mid + three && chance < rim + mid + three + post;
 
       // Log the debugging information
-      console.log(`Debug Info:
-    Chance: ${chance}
-    Rim: ${rim} (${rimCondition})
-    Mid: ${mid} (${midCondition})
-    Three: ${three} (${threeCondition})
-    Post: ${post} (${postCondition})
-    Sum: ${sum}
-  `);
 
       // Return based on conditions
       if (rimCondition) {
@@ -917,6 +902,24 @@ export default {
     updateScoreAndLog(player, points, type) {
       const isTeamOne = this.possession === 0;
 
+      // Determine the assisting player
+      const assistPlayer = this.calcAssist(
+        isTeamOne ? this.teams.teamOne : this.teams.teamTwo,
+        player
+      );
+
+      // Log assist information if an assist player is determined
+      if (assistPlayer) {
+        const assistStats = isTeamOne
+          ? this.playerStatTemplate.teamOne[assistPlayer.name]
+          : this.playerStatTemplate.teamTwo[assistPlayer.name];
+        assistStats.assists++;
+        const teamStats = isTeamOne
+          ? this.teamStats.teamOne
+          : this.teamStats.teamTwo;
+        teamStats.assists++;
+      }
+
       // Update the respective team stats
       const teamStats = isTeamOne
         ? this.teamStats.teamOne
@@ -988,41 +991,52 @@ export default {
       }
     },
     calcAssist(team, currentPlayer) {
+      const assistChance = 0.62; // Set assist chance to 28%
+      const roll = Math.random(); // Generate a random number between 0 and 1
+
+      // Only calculate assist if roll is within the assist chance
+      if (roll > assistChance) {
+        return null;
+      }
       let assistScores = [];
-      let totalAssistScore = 0;
+      // let totalAssistScore = 0;
 
       // Exclude the current player from the assist calculation
       const excludePlayer = team.filter(
-        (player) => player.name !== currentPlayer.name
+        (player) => player.id !== currentPlayer.id
       );
 
       // Calculate assist scores for each eligible player
+
       excludePlayer.forEach((player) => {
         const assistScore =
-          player.attributes.offense.handles +
-          player.attributes.offense.pass +
-          player.tendencies.offense.pass;
+          player.attributes.offense.handles * 0.5 +
+          player.attributes.offense.pass * 0.5 +
+          player.tendencies.offense.pass * 3.5;
+
         assistScores.push(assistScore);
-        totalAssistScore += assistScore;
+        // totalAssistScore += assistScore;
       });
 
       // Convert assist scores to probabilities
-      const probabilities = assistScores.map(
-        (score) => score / totalAssistScore
+      // const probabilities = assistScores.map(
+      //   (score) => score / totalAssistScore
+      // );
+      const maxScore = Math.max(...assistScores);
+
+      const normalizedScores = assistScores.map((score) => score / maxScore);
+      const probabilities = normalizedScores.map(
+        (score) => score / normalizedScores.reduce((a, b) => a + b, 0)
       );
 
       const chance = Math.random(); // Generate a random number between 0 and 1
       let cumulativeProbability = 0;
-
-      // Determine the assisting player based on the random chance
       for (let i = 0; i < probabilities.length; i++) {
         cumulativeProbability += probabilities[i];
-        if (chance <= cumulativeProbability) {
-          return excludePlayer[i]; // Return the player who makes the assist
+        if (chance < cumulativeProbability) {
+          return excludePlayer[i];
         }
       }
-
-      return excludePlayer[excludePlayer.length - 1]; // Fallback to the last eligible player
     },
 
     assignToTeams(team1, team2) {
