@@ -1,8 +1,19 @@
 <template>
   <div class="game-ui">
+    <div class="speed-container">
+      <label for="speed">Speed:</label>
+      <select id="speed" v-model="speed" @change="updateGameSpeed">
+        <option value="1">1x</option>
+        <option value="10">10x</option>
+        <option value="30">30x</option>
+        <option value="100">100x</option>
+      </select>
+    </div>
+
     <div class="restart-container">
       <button @click="restartGame" class="restart-button">Restart Game</button>
     </div>
+
     <div class="middle-container">
       <!-- Home Team Section -->
       <div class="team">
@@ -140,6 +151,12 @@
       </div>
 
       <div class="center">
+        <div class="quarter">Quarter: {{ quarter }} / {{ totalQuarters }}</div>
+        <div class="timer">
+          Time Left: {{ Math.floor(timeLeft / 60) }}:{{
+            (timeLeft % 60).toString().padStart(2, '0')
+          }}
+        </div>
         <div class="score">
           {{ gameScore.teamOne }} : {{ gameScore.teamTwo }}
         </div>
@@ -288,19 +305,21 @@
         <!-- Home Log -->
         <div class="log-entry home-log" v-if="log.team === 'home'">
           <span class="team-log home">{{ log.message }}</span>
+          <span v-if="log.score" class="log-score">[{{ log.score }}]</span>
         </div>
-        <div class="log-empty" v-else></div>
 
-        <!-- Score in the Middle (only for scoring events) -->
-        <div class="log-score" v-if="log.score">
-          <span>{{ log.score }}</span>
+        <!-- Neutral Log (Center) -->
+        <div class="log-neutral" v-if="log.team === 'neutral'">
+          <span class="neutral-log">
+            {{ log.message }}
+            <span v-if="log.time" class="game-time">{{ log.time }}</span>
+          </span>
         </div>
-        <div class="log-empty" v-else></div>
 
         <!-- Away Log -->
-        <div class="log-empty" v-if="log.team === 'home'"></div>
-        <div class="log-entry away-log" v-else>
+        <div class="log-entry away-log" v-if="log.team === 'away'">
           <span class="team-log away">{{ log.message }}</span>
+          <span v-if="log.score" class="log-score">[{{ log.score }}]</span>
         </div>
       </div>
     </div>
@@ -316,12 +335,21 @@ import {
 } from '../services/routes.js';
 export default {
   mounted() {
-    this.countdown();
     // setTimeout(this.startGame(), 5000)
+    this.startGame = this.startGame.bind(this);
+    this.startQuarter = this.startQuarter.bind(this);
+    this.gameCycle = this.gameCycle.bind(this);
+    this.countdown();
   },
   components: {},
   data() {
     return {
+      speed: 1, // Default speed is 1x
+      intervalId: null, // Store interval ID to clear when speed changes
+      quarter: 1, // Current quarter
+      timeLeft: 720, // Quarter duration in seconds (12 minutes)
+      totalQuarters: 4, // Number of quarters
+      jumpBallWinner: null, // Team that won the initial jump ball (0 or 1)
       gameObject: {},
       gameLog: [],
       homeLog: [],
@@ -370,6 +398,13 @@ export default {
     }
   },
   methods: {
+    updateGameSpeed() {
+      if (this.gameInProgress) {
+        // Restart the clock with the new speed
+        clearInterval(this.intervalId);
+        this.runClock();
+      }
+    },
     restartGame() {
       // Reset scores
       this.gameScore = { teamOne: 0, teamTwo: 0 };
@@ -450,37 +485,135 @@ export default {
 
       // Reset possession and game state
       this.possession = null;
+
+      this.quarter = 1;
+      this.timeLeft = 720;
       this.gameInProgress = false;
+      // Reset other game states
       this.startGame();
     },
-    addLog(team, message, isScoringEvent = false) {
+    addLog(team, message, isScoringEvent = false, time = null) {
       const logEntry = {
-        team,
-        message
+        team, // 'home', 'away', or 'neutral'
+        message // The log message
       };
 
-      // Add score only for scoring events
+      // Add score if it's a scoring event
       if (isScoringEvent) {
         logEntry.score = `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`;
       }
 
+      // Add game time if provided
+      if (time) {
+        logEntry.time = time;
+      }
+
+      // Add the log entry to the beginning of the game log
       this.gameLog.unshift(logEntry);
 
+      // Separate handling for home and away logs for backward compatibility
       if (team === 'home') {
         this.homeLog.unshift(message);
       } else if (team === 'away') {
         this.awayLog.unshift(message);
       }
     },
-
     countdown() {
       this.startGame();
     },
     getPlayerOverall() {},
     startGame() {
       this.gameInProgress = true;
-      this.gameCycle();
+      if (typeof this.startQuarter === 'function') {
+        this.startQuarter();
+      } else {
+        console.error('startQuarter is not a function');
+      }
     },
+    startQuarter() {
+      this.timeLeft = 720; // Reset timer for a 12-minute quarter
+
+      if (this.quarter === 1) {
+        // Jump ball for the first quarter
+        this.jumpBall();
+      } else {
+        // Alternate possession for subsequent quarters
+        if (this.quarter % 2 === 0) {
+          // 2nd and 4th quarters: Possession goes to the team that lost the jump ball
+          this.possession = this.jumpBallWinner === 0 ? 1 : 0;
+        } else {
+          // 3rd quarter: Possession goes to the team that won the jump ball
+          this.possession = this.jumpBallWinner;
+        }
+
+        this.addLog(
+          this.possession === 0 ? 'home' : 'away', // Specify the team based on possession
+          `Start of Quarter ${this.quarter}: Possession to ${
+            this.possession === 0 ? 'Home' : 'Away'
+          }`
+        );
+      }
+
+      this.gameCycle(); // Start game actions
+      this.runClock(); // Start the game clock
+    },
+
+    runClock() {
+      const intervalTime = 1000 / this.speed; // Adjust interval time based on speed
+
+      this.intervalId = setInterval(() => {
+        if (!this.gameInProgress) {
+          clearInterval(this.intervalId);
+          return;
+        }
+
+        if (this.timeLeft > 0) {
+          this.timeLeft--;
+
+          // Trigger game logic periodically
+          if (this.timeLeft % this.getRandomEventTime() === 0) {
+            this.gameCycle();
+          }
+        } else {
+          clearInterval(this.intervalId); // Stop the clock when time is up
+          this.endQuarter();
+        }
+      }, intervalTime);
+    },
+    beforeDestroy() {
+      // Clear interval when the component is destroyed
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+      }
+    },
+    getRandomEventTime() {
+      // Generate a random integer between 8 and 24 (inclusive)
+      return Math.floor(Math.random() * (24 - 8 + 1)) + 8;
+    },
+    endQuarter() {
+      this.gameLog.unshift(`End of Quarter ${this.quarter}`);
+      this.quarter++;
+
+      if (this.quarter > this.totalQuarters) {
+        this.endGame();
+      } else {
+        this.gameInProgress = false; // Pause the game
+        setTimeout(() => {
+          this.startQuarter(); // Resume with the next quarter
+        }, 5000); // 5-second break between quarters
+      }
+    },
+    endGame() {
+      if (this.gameScore.teamOne >= 100 || this.gameScore.teamTwo >= 100) {
+        this.gameInProgress = false;
+        this.gameLog.unshift(
+          'Game Over! Final Score: ' +
+            `${this.gameScore.teamOne} : ${this.gameScore.teamTwo}`
+        );
+        this.saveGameStats(); // Save game data
+      }
+    },
+
     jumpBall() {
       const [playerOne, playerTwo] = this.getTallest();
       const p1v = playerOne.height * playerOne.attributes.physical.vertical;
@@ -489,12 +622,13 @@ export default {
         parseFloat((p1v / (p1v + p2v)).toFixed(2)),
         parseFloat((p2v / (p1v + p2v)).toFixed(2))
       ];
-      if (parseFloat(Math.random().toFixed(2)) < percentage[0]) {
-        this.possession = 0;
-        this.gameLog.unshift(`${playerOne.name} won the tip! `);
+
+      if (Math.random() < percentage[0]) {
+        this.possession = 0; // Home team wins possession
+        this.addLog('home', `${playerOne.name} won the jump ball!`);
       } else {
-        this.possession = 1;
-        this.gameLog.unshift(`${playerTwo.name} won the tip! `);
+        this.possession = 1; // Away team wins possession
+        this.addLog('away', `${playerTwo.name} won the jump ball!`);
       }
     },
 
@@ -674,6 +808,7 @@ export default {
       if (makeOrMiss === 'make') {
         const points = type === 'shoot_three' ? 3 : 2;
         this.updateScoreAndLog(player, points, type);
+        // this.gameCycle(); // Continue the cycle
       } else {
         this.updateMissedShotStats(player, type);
 
@@ -785,6 +920,7 @@ export default {
           this.possession = 0; // Change possession
         }
       }
+      // this.runClock(); // Resume clock after rebound
     },
     calcBlockChance(defender, shooter, shotType) {
       // Defensive stats contributions
@@ -856,10 +992,7 @@ export default {
       return team[team.length - 1]; // Fallback to the last player in case of rounding issues
     },
     logRebounds(string) {
-      this.gameLog.unshift(
-        string[Math.floor(Math.random() * string.length)] +
-          `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-      );
+      this.gameLog.unshift(string[Math.floor(Math.random() * string.length)]);
     },
     calcSteal(offTeam, defTeam) {
       const chance = Math.random().toFixed(2);
@@ -1018,10 +1151,6 @@ export default {
         // totalAssistScore += assistScore;
       });
 
-      // Convert assist scores to probabilities
-      // const probabilities = assistScores.map(
-      //   (score) => score / totalAssistScore
-      // );
       const maxScore = Math.max(...assistScores);
 
       const normalizedScores = assistScores.map((score) => score / maxScore);
@@ -1085,8 +1214,11 @@ export default {
       return { teamOne, teamTwo };
     },
     gameCycle() {
+      if (!this.gameInProgress) return;
+
       if (this.possession === null) {
         this.jumpBall();
+        return;
       }
 
       let currentPlayer;
@@ -1095,17 +1227,20 @@ export default {
       let steal;
       if (this.possession === 1) {
         const currentPlayerIndex = this.checkShootPass(this.teams.teamTwo);
-
         shotType = this.pickTypeOfShot(this.teams.teamTwo[currentPlayerIndex]);
         currentPlayer = this.teams.teamTwo[currentPlayerIndex];
         matchup = this.teams.teamOne[currentPlayerIndex];
         steal = this.calcSteal(this.teams.teamTwo, this.teams.teamOne);
-        if (steal === true) {
+        if (steal) {
           this.logSteal(currentPlayer, matchup);
           this.playerStatTemplate.teamTwo[`${currentPlayer.name}`].steals++;
           this.teamStats.teamTwo.steals++;
           this.playerStatTemplate.teamOne[`${matchup.name}`].turnovers++;
           this.teamStats.teamOne.turnovers++;
+          this.possession = 1; // Change possession
+          // this.gameCycle();
+
+          return; // End the possession
         }
       } else {
         const currentPlayerIndex = this.checkShootPass(this.teams.teamOne);
@@ -1113,27 +1248,31 @@ export default {
         currentPlayer = this.teams.teamOne[currentPlayerIndex];
         matchup = this.teams.teamTwo[currentPlayerIndex];
         steal = this.calcSteal(this.teams.teamOne, this.teams.teamTwo);
-        if (steal === true) {
+        if (steal) {
           this.logSteal(currentPlayer, matchup);
           this.playerStatTemplate.teamOne[`${currentPlayer.name}`].steals++;
           this.teamStats.teamOne.steals++;
           this.playerStatTemplate.teamTwo[`${matchup.name}`].turnovers++;
           this.teamStats.teamTwo.turnovers++;
+          this.possession = 0; // Change possession
+          // this.gameCycle();
+
+          return; // End the possession
         }
       }
 
       this.shootBall(currentPlayer, shotType, matchup);
-      if (this.gameScore.teamOne < 100 && this.gameScore.teamTwo < 100) {
-        setTimeout(this.gameCycle, 0);
+      // if (this.gameScore.teamOne < 100 && this.gameScore.teamTwo < 100) {
+      //   setTimeout(this.gameCycle, 0);
 
-        return;
-      }
+      //   return;
+      // }
 
-      this.gameInProgress = false;
-      this.getTeamById(JSON.parse(localStorage.getItem('team_name')).id);
-      this.createGame(this.createGameObject());
-      const team = JSON.parse(localStorage.getItem('team_name'));
-      this.getUpdatedTeam(team.team_name, team.password);
+      // this.gameInProgress = false;
+      // this.getTeamById(JSON.parse(localStorage.getItem('team_name')).id);
+      // this.createGame(this.createGameObject());
+      // const team = JSON.parse(localStorage.getItem('team_name'));
+      // this.getUpdatedTeam(team.team_name, team.password);
     },
     async updateTeamById(id, body) {
       const res = await UpdateTeamById(id, body);
@@ -1181,6 +1320,32 @@ export default {
 </script>
 
 <style scoped>
+.log-score {
+  font-size: 0.8rem;
+  color: #888;
+  margin-left: 0.5rem;
+}
+
+.speed-container {
+  display: flex;
+  align-items: center;
+  margin-top: 1rem;
+  color: white;
+}
+
+.speed-container label {
+  margin-right: 0.5rem;
+}
+
+.speed-container select {
+  background-color: #444;
+  color: white;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
 .game-ui {
   font-family: 'Share', cursive;
   background-color: #222;
@@ -1393,5 +1558,12 @@ th {
 
 .restart-button:hover {
   background-color: #777;
+}
+
+.quarter,
+.timer {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #fff;
 }
 </style>
