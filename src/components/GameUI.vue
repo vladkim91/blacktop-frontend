@@ -8,10 +8,11 @@
         <option value="30">30x</option>
         <option value="100">100x</option>
       </select>
-    </div>
-
-    <div class="restart-container">
-      <button @click="restartGame" class="restart-button">Restart Game</button>
+      <div class="restart-container">
+        <button @click="restartGame" class="restart-button">
+          Restart Game
+        </button>
+      </div>
     </div>
 
     <div class="middle-container">
@@ -304,22 +305,20 @@
       <div class="log-row" v-for="(log, index) in gameLog" :key="index">
         <!-- Home Log -->
         <div class="log-entry home-log" v-if="log.team === 'home'">
-          <span class="team-log home">{{ log.message }}</span>
-          <span v-if="log.score" class="log-score">[{{ log.score }}]</span>
+          <span class="team-log">{{ log.message }}</span>
         </div>
-
-        <!-- Neutral Log (Center) -->
-        <div class="log-neutral" v-if="log.team === 'neutral'">
-          <span class="neutral-log">
-            {{ log.message }}
-            <span v-if="log.time" class="game-time">{{ log.time }}</span>
-          </span>
+        <div class="log-empty" v-if="log.team !== 'home'"></div>
+        <!-- Neutral Log -->
+        <!-- Neutral Log -->
+        <div class="log-entry log-neutral">
+          <div v-if="log.time" class="log-time">{{ log.time }}</div>
+          <div v-if="log.score" class="log-score">{{ log.score }}</div>
+          <div v-if="log.message && !log.team">{{ log.message }}</div>
         </div>
-
         <!-- Away Log -->
+        <div class="log-empty" v-if="log.team !== 'away'"></div>
         <div class="log-entry away-log" v-if="log.team === 'away'">
-          <span class="team-log away">{{ log.message }}</span>
-          <span v-if="log.score" class="log-score">[{{ log.score }}]</span>
+          <span class="team-log">{{ log.message }}</span>
         </div>
       </div>
     </div>
@@ -495,28 +494,19 @@ export default {
     addLog(team, message, isScoringEvent = false, time = null) {
       const logEntry = {
         team, // 'home', 'away', or 'neutral'
-        message // The log message
+        message, // The log message
+        score: isScoringEvent
+          ? `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
+          : null,
+        time: time
+          ? time
+          : `${Math.floor(this.timeLeft / 60)}:${(this.timeLeft % 60)
+              .toString()
+              .padStart(2, '0')}`
       };
-
-      // Add score if it's a scoring event
-      if (isScoringEvent) {
-        logEntry.score = `${this.gameScore.teamOne}:${this.gameScore.teamTwo}`;
-      }
-
-      // Add game time if provided
-      if (time) {
-        logEntry.time = time;
-      }
 
       // Add the log entry to the beginning of the game log
       this.gameLog.unshift(logEntry);
-
-      // Separate handling for home and away logs for backward compatibility
-      if (team === 'home') {
-        this.homeLog.unshift(message);
-      } else if (team === 'away') {
-        this.awayLog.unshift(message);
-      }
     },
     countdown() {
       this.startGame();
@@ -905,18 +895,12 @@ export default {
           rebounder = this.calcRebounder(team2);
           this.playerStatTemplate.teamTwo[`${rebounder.name}`].rebounds++;
           this.teamStats.teamTwo.rebounds++;
-          this.addLog(
-            'away',
-            `${rebounder.name} grabs offensive rebound. ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-          );
+          this.addLog('away', `${rebounder.name} grabs offensive rebound.`);
         } else {
           rebounder = this.calcRebounder(team1);
           this.playerStatTemplate.teamOne[`${rebounder.name}`].rebounds++;
           this.teamStats.teamOne.rebounds++;
-          this.addLog(
-            'home',
-            `${rebounder.name} grabs defensive rebound. ${this.gameScore.teamOne}:${this.gameScore.teamTwo}`
-          );
+          this.addLog('home', `${rebounder.name} grabs defensive rebound.`);
           this.possession = 0; // Change possession
         }
       }
@@ -1320,12 +1304,6 @@ export default {
 </script>
 
 <style scoped>
-.log-score {
-  font-size: 0.8rem;
-  color: #888;
-  margin-left: 0.5rem;
-}
-
 .speed-container {
   display: flex;
   align-items: center;
@@ -1354,28 +1332,29 @@ export default {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100vh; /* Ensure it occupies the full height */
+  height: 95vh; /* Ensure it occupies the full height */
 }
 
 .middle-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  /* margin-bottom: 1rem; */
 }
 
 .team {
   background-color: #333;
   padding: 1rem;
   border-radius: 8px;
-  width: 45%;
+  width: 40%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 h2 {
   text-align: center;
   font-size: 1.5rem;
-  margin-bottom: 1rem;
+  margin: 0;
+
   color: #fff;
 }
 
@@ -1383,7 +1362,7 @@ h2 {
   flex: 8;
   background-color: #444;
   padding: 0.5rem;
-  border-radius: 8px;
+  border-radius: 4px;
   margin-bottom: 0.5rem;
 }
 
@@ -1396,7 +1375,7 @@ table {
 
 th,
 td {
-  padding: 0.3rem;
+  padding: 0.1rem;
   border: 1px solid #555;
   font-size: 0.9rem;
 }
@@ -1430,7 +1409,7 @@ th {
 .score {
   font-size: 3rem;
   background-color: #444;
-  padding: 0.5rem;
+  padding: 0.2rem;
   border-radius: 8px;
   margin-bottom: 1rem;
 }
@@ -1453,9 +1432,9 @@ th {
   flex-direction: column;
   background-color: #222;
   width: 100%;
-  height: 30vh;
-  margin-top: 1rem;
-  padding: 1rem;
+  height: 25vh;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
   border-radius: 10px;
   overflow-y: auto;
   border: 1px solid #555;
@@ -1463,71 +1442,72 @@ th {
 
 .log-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  margin: 0.5rem 0;
-  height: auto; /* Ensures logs adjust dynamically */
+  height: 2.3rem; /* Set consistent height for rows */
 }
 
-.log-entry {
-  width: 45%; /* Each log occupies 45% of the row width */
-  text-align: left;
+.log-entry,
+.log-empty {
+  font-size: 0.8rem;
+  min-height: 2.5rem; /* Ensures consistent height for rows */
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center align content in the empty space */
+  text-align: center;
 }
 
 .log-empty {
-  width: 45%; /* Empty space for alignment */
-  height: 100%; /* Ensures alignment with other rows */
-}
-
-.log-score {
-  width: 10%; /* Score occupies the middle 10% */
-  text-align: center;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: white;
+  width: 33vw; /* Ensures equal width for the empty space */
+  color: transparent; /* Makes empty rows invisible */
+  visibility: hidden; /* Hides the content but preserves space */
 }
 
 .home-log {
-  display: flex;
-  justify-content: flex-end; /* Align home log text to the right */
-  text-align: right;
+  width: 33vw; /* Ensures equal width for the empty space */
+
+  justify-content: flex-end;
+}
+.away-log {
+  width: 33vw; /* Ensures equal width for the empty space */
+  padding: 0; /* Add padding for spacing */
+  justify-content: flex-start;
 }
 
-.away-log {
+.log-neutral {
+  width: 5vw; /* Narrower width for the neutral section */
   display: flex;
-  justify-content: flex-start; /* Align away log text to the left */
-  text-align: left;
+  flex-direction: column; /* Stack items vertically */
+  justify-content: space-around; /* Center align content vertically */
+  align-items: center; /* Center align content horizontally */
+  text-align: center; /* Align text in the center */
 }
 
 .team-log {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
+  margin: 0;
 }
 
-.home-log .team-log {
-  background-color: #333; /* Home log background color */
-  color: white;
+.log-time,
+.log-score {
+  padding: 0;
+  line-height: 0.8; /* Ensure consistent spacing */
 }
 
-.away-log .team-log {
-  background-color: #444; /* Away log background color */
-  color: white;
+.log-time {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-bottom: 0.1rem; /* Add minimal spacing */
 }
 
-.log-score span {
-  background-color: transparent; /* No background for the score */
-  color: #fff;
-  padding: 0.5rem;
-  border-radius: 5px;
+.log-score {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #ffffff; /* Highlight the score */
+  margin-bottom: 0.1rem; /* Add minimal spacing */
 }
 
 .log-container::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .log-container::-webkit-scrollbar-thumb {
