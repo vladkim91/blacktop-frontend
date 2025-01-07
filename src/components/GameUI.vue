@@ -17,7 +17,7 @@
     <div class="middle-container">
       <!-- Home Team Section -->
       <div class="team">
-        <h2>Home</h2>
+        <h2 :class="{ highlight: possession === 0 && gameInProgress }">Home</h2>
         <div
           v-for="player in teams.teamOne"
           :key="player.id"
@@ -78,7 +78,13 @@
                         : '0%'
                     }}
                   </td>
-                  <td>{{ playerStatTemplate.teamOne[player.name].points }}</td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamOne[player.name].points
+                    }"
+                  >
+                    {{ playerStatTemplate.teamOne[player.name].points }}
+                  </td>
                   <td>
                     {{ playerStatTemplate.teamOne[player.name].rebounds }}
                   </td>
@@ -167,7 +173,7 @@
 
       <!-- Away Team Section -->
       <div class="team">
-        <h2>Away</h2>
+        <h2 :class="{ highlight: possession === 1 && gameInProgress }">Away</h2>
         <div
           v-for="player in teams.teamTwo"
           :key="player.id"
@@ -348,9 +354,12 @@ export default {
       timeLeft: 720, // Quarter duration in seconds (12 minutes)
       totalQuarters: 4, // Number of quarters
       jumpBallWinner: null, // Team that won the initial jump ball (0 or 1)
-      gameObject: {},
+      statChanges: {
+        teamOne: {}, // Example: { playerName: { statName: true } }
+        teamTwo: {}
+      },
       gameLog: [],
-      record: {},
+
       possession: null,
       gameInProgress: false,
       teamStats: {
@@ -1093,12 +1102,14 @@ export default {
           : this.teamStats.teamTwo;
         teamStats.assists++;
       }
-
+      // Determine the team dynamically
+      const team = isTeamOne ? 'teamOne' : 'teamTwo';
       // Update the respective team stats
       const teamStats = isTeamOne
         ? this.teamStats.teamOne
         : this.teamStats.teamTwo;
       teamStats.points += points;
+      this.markStatChanged(team, player.name, 'points');
       teamStats.fgm++;
       teamStats.fga++;
       if (type === 'shoot_three') {
@@ -1236,6 +1247,18 @@ export default {
           threeA: 0,
           threeM: 0
         };
+        this.statChanges.teamOne[player.name] = {
+          points: false,
+          rebounds: false,
+          assists: false,
+          steals: false,
+          blocks: false,
+          turnovers: false,
+          fgm: false,
+          fga: false,
+          threeA: false,
+          threeM: false
+        };
       });
 
       team2.forEach((player) => {
@@ -1251,8 +1274,27 @@ export default {
           threeA: 0,
           threeM: 0
         };
+        this.statChanges.teamTwo[player.name] = {
+          points: false,
+          rebounds: false,
+          assists: false,
+          steals: false,
+          blocks: false,
+          turnovers: false,
+          fgm: false,
+          fga: false,
+          threeA: false,
+          threeM: false
+        };
       });
+
       return { teamOne, teamTwo };
+    },
+    markStatChanged(team, playerName, statName) {
+      this.statChanges[team][playerName][statName] = true;
+      setTimeout(() => {
+        this.statChanges[team][playerName][statName] = false;
+      }, 1000); // Reset after 1 second
     },
     gameCycle() {
       if (!this.gameInProgress) return;
@@ -1363,6 +1405,20 @@ export default {
 </script>
 
 <style scoped>
+.stat-changed {
+  animation: stat-flash 1s ease-out;
+}
+
+@keyframes stat-flash {
+  0% {
+    background-color: red;
+    color: white;
+  }
+  100% {
+    background-color: transparent;
+    color: inherit;
+  }
+}
 .speed-container {
   display: flex;
   align-items: center;
@@ -1604,5 +1660,11 @@ th {
   font-size: 1.2rem;
   margin-bottom: 1rem;
   color: #fff;
+}
+.highlight {
+  background-color: #ffcc00; /* Gold color for highlighting */
+  color: #000; /* Dark text for contrast */
+  border-radius: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 </style>
