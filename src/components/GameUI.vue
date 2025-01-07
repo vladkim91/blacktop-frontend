@@ -4,9 +4,8 @@
       <label for="speed">Speed:</label>
       <select id="speed" v-model="speed" @change="updateGameSpeed">
         <option value="1">1x</option>
-        <option value="10">10x</option>
-        <option value="30">30x</option>
-        <option value="100">100x</option>
+        <option value="50">50x</option>
+        <option value="200">200x</option>
       </select>
       <div class="restart-container">
         <button @click="restartGame" class="restart-button">
@@ -528,7 +527,7 @@ export default {
         this.jumpBall();
       } else {
         // Alternate possession for subsequent quarters
-        if (this.quarter % 2 === 0) {
+        if (this.quarter === 2 || this.quarter === 3) {
           // 2nd and 4th quarters: Possession goes to the team that lost the jump ball
           this.possession = this.jumpBallWinner === 0 ? 1 : 0;
         } else {
@@ -616,9 +615,11 @@ export default {
       if (Math.random() < percentage[0]) {
         this.possession = 0; // Home team wins possession
         this.addLog('home', `${playerOne.name} won the jump ball!`);
+        this.jumpBallWinner = 0;
       } else {
         this.possession = 1; // Away team wins possession
         this.addLog('away', `${playerTwo.name} won the jump ball!`);
+        this.jumpBallWinner = 1;
       }
     },
 
