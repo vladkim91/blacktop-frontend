@@ -3,9 +3,9 @@
     <div class="speed-container">
       <label for="speed">Speed:</label>
       <select id="speed" v-model="speed" @change="updateGameSpeed">
-        <option value="1">1x</option>
+        <option value="2000">2000x</option>
         <option value="50">50x</option>
-        <option value="200">200x</option>
+        <option value="1">1x</option>
       </select>
       <div class="restart-container">
         <button @click="restartGame" class="restart-button">
@@ -342,7 +342,7 @@ export default {
   components: {},
   data() {
     return {
-      speed: 1, // Default speed is 1x
+      speed: 2000, // Default speed is 1x
       intervalId: null, // Store interval ID to clear when speed changes
       quarter: 1, // Current quarter
       timeLeft: 720, // Quarter duration in seconds (12 minutes)
@@ -350,8 +350,6 @@ export default {
       jumpBallWinner: null, // Team that won the initial jump ball (0 or 1)
       gameObject: {},
       gameLog: [],
-      homeLog: [],
-      awayLog: [],
       record: {},
       possession: null,
       gameInProgress: false,
@@ -580,27 +578,41 @@ export default {
       return Math.floor(Math.random() * (24 - 8 + 1)) + 8;
     },
     endQuarter() {
-      this.gameLog.unshift(`End of Quarter ${this.quarter}`);
-      this.quarter++;
+      const possessionSide = this.possession === 0 ? 'home' : 'away'; // Determine possession side
 
-      if (this.quarter > this.totalQuarters) {
-        this.endGame();
-      } else {
-        this.gameInProgress = false; // Pause the game
+      // Log the end of the quarter for the team that has possession
+      this.addLog(possessionSide, `End of Quarter ${this.quarter}`);
+      if (this.quarter < this.totalQuarters) {
+        this.quarter++; // Increment the quarter if it's not the last one
+        this.gameInProgress = true; // Keep the game in progress
+
+        // Pause before starting the next quarter
         setTimeout(() => {
-          this.startQuarter(); // Resume with the next quarter
-        }, 5000); // 5-second break between quarters
+          this.startQuarter();
+        }, 0); // 2-second break between quarters
+      } else {
+        // End the game if this is the last quarter
+        this.gameInProgress = false;
+        this.endGame();
       }
     },
     endGame() {
-      if (this.gameScore.teamOne >= 100 || this.gameScore.teamTwo >= 100) {
-        this.gameInProgress = false;
-        this.gameLog.unshift(
-          'Game Over! Final Score: ' +
-            `${this.gameScore.teamOne} : ${this.gameScore.teamTwo}`
-        );
-        this.saveGameStats(); // Save game data
+      console.log('endGame');
+      if (this.intervalId) {
+        clearInterval(this.intervalId); // Clear the clock interval
+        this.intervalId = null; // Reset the interval ID
       }
+      // Stop the game when all quarters are completed
+
+      this.gameInProgress = false; // Ensure the game is marked as finished
+
+      // Log the final score
+      this.addLog(
+        this.possession === 0 ? 'home' : 'away',
+        `Game Over! Final Score: ${this.gameScore.teamOne} : ${this.gameScore.teamTwo}`
+      );
+
+      // this.saveGameStats(); // Save game statistics
     },
 
     jumpBall() {
@@ -737,8 +749,15 @@ export default {
       let percentage;
       let defensiveContest;
       let layupDunk = '';
-      // if (type == 'unknown') console.log('test');
+      // Determine block chance
+      const blockChance = this.calcBlockChance(matchup, player, type);
+      const blockRoll = Math.random();
 
+      // Handle block scenario
+      if (blockRoll < blockChance) {
+        this.handleBlock(player, matchup, this.possession);
+        return; // End the shot attempt after block
+      }
       switch (type) {
         case 'attack_rim':
           defensiveContest =
@@ -799,7 +818,6 @@ export default {
       if (makeOrMiss === 'make') {
         const points = type === 'shoot_three' ? 3 : 2;
         this.updateScoreAndLog(player, points, type);
-        // this.gameCycle(); // Continue the cycle
       } else {
         this.updateMissedShotStats(player, type);
 
@@ -837,6 +855,44 @@ export default {
         return 'make';
       } else if (chance > percentage) {
         return 'miss';
+      }
+    },
+    handleBlock(player, matchup, possession) {
+      const blockOutcome = Math.random(); // Random roll to decide outcome
+      const blockStaysInbounds = blockOutcome < 0.65;
+
+      // Log the block
+      const message = `${matchup.name} blocks ${player.name}'s shot!`;
+      if (possession === 0) {
+        this.addLog('away', message);
+        this.playerStatTemplate.teamTwo[matchup.name].blocks++;
+        this.teamStats.teamTwo.blocks++;
+      } else {
+        this.addLog('home', message);
+        this.playerStatTemplate.teamOne[matchup.name].blocks++;
+        this.teamStats.teamOne.blocks++;
+      }
+
+      // Record a missed attempt for the blocked shot
+      const isTeamOne = possession === 0; // Determine the team of the shooter
+      const currentPlayerStats = isTeamOne
+        ? this.playerStatTemplate.teamOne[player.name]
+        : this.playerStatTemplate.teamTwo[player.name];
+      const currentTeamStats = isTeamOne
+        ? this.teamStats.teamOne
+        : this.teamStats.teamTwo;
+
+      currentPlayerStats.fga++; // Increment field goal attempts
+      currentTeamStats.fga++;
+
+      if (blockStaysInbounds) {
+        this.rebound(this.teams.teamOne, this.teams.teamTwo);
+      } else {
+        this.addLog(
+          possession === 1 ? 'home' : 'away',
+          'The ball goes out of bounds!'
+        );
+        // Optionally, maintain possession with the offense or handle other logic
       }
     },
     rebound(team1, team2) {
@@ -930,12 +986,12 @@ export default {
       }
 
       // Global scaling for block chance
-      const globalBlockScale = 0.03; // Adjust to target ~3% block rate
+      const globalBlockScale = 0.05; // Adjust to target ~3% block rate
       const blockChance =
         (effectiveDefense - shooterAdvantage) * globalBlockScale;
 
       // Ensure block chance is between 0 and 1
-      return Math.max(0, Math.min(blockChance, 0.15));
+      return Math.max(0, Math.min(blockChance, 0.05));
     },
     calcRebounder(team) {
       let reboundChances = [];
@@ -1205,46 +1261,22 @@ export default {
         this.jumpBall();
         return;
       }
+      // Determine the current team and matchup
+      const offenseTeam =
+        this.possession === 1 ? this.teams.teamTwo : this.teams.teamOne;
+      const defenseTeam =
+        this.possession === 1 ? this.teams.teamOne : this.teams.teamTwo;
+      const currentPlayerIndex = this.checkShootPass(offenseTeam);
+      const currentPlayer = offenseTeam[currentPlayerIndex];
+      const matchup = defenseTeam[currentPlayerIndex];
 
-      let currentPlayer;
-      let shotType;
-      let matchup;
-      let steal;
-      if (this.possession === 1) {
-        const currentPlayerIndex = this.checkShootPass(this.teams.teamTwo);
-        shotType = this.pickTypeOfShot(this.teams.teamTwo[currentPlayerIndex]);
-        currentPlayer = this.teams.teamTwo[currentPlayerIndex];
-        matchup = this.teams.teamOne[currentPlayerIndex];
-        steal = this.calcSteal(this.teams.teamTwo, this.teams.teamOne);
-        if (steal) {
-          this.logSteal(currentPlayer, matchup);
-          this.playerStatTemplate.teamTwo[`${currentPlayer.name}`].steals++;
-          this.teamStats.teamTwo.steals++;
-          this.playerStatTemplate.teamOne[`${matchup.name}`].turnovers++;
-          this.teamStats.teamOne.turnovers++;
-          this.possession = 1; // Change possession
-          // this.gameCycle();
-
-          return; // End the possession
-        }
-      } else {
-        const currentPlayerIndex = this.checkShootPass(this.teams.teamOne);
-        shotType = this.pickTypeOfShot(this.teams.teamOne[currentPlayerIndex]);
-        currentPlayer = this.teams.teamOne[currentPlayerIndex];
-        matchup = this.teams.teamTwo[currentPlayerIndex];
-        steal = this.calcSteal(this.teams.teamOne, this.teams.teamTwo);
-        if (steal) {
-          this.logSteal(currentPlayer, matchup);
-          this.playerStatTemplate.teamOne[`${currentPlayer.name}`].steals++;
-          this.teamStats.teamOne.steals++;
-          this.playerStatTemplate.teamTwo[`${matchup.name}`].turnovers++;
-          this.teamStats.teamTwo.turnovers++;
-          this.possession = 0; // Change possession
-          // this.gameCycle();
-
-          return; // End the possession
-        }
+      // Check for a steal
+      const steal = this.calcSteal(offenseTeam, defenseTeam);
+      if (steal) {
+        this.handleSteal(currentPlayer, matchup);
+        return; // End possession after a steal
       }
+      const shotType = this.pickTypeOfShot(currentPlayer);
 
       this.shootBall(currentPlayer, shotType, matchup);
       // if (this.gameScore.teamOne < 100 && this.gameScore.teamTwo < 100) {
@@ -1258,6 +1290,32 @@ export default {
       // this.createGame(this.createGameObject());
       // const team = JSON.parse(localStorage.getItem('team_name'));
       // this.getUpdatedTeam(team.team_name, team.password);
+    },
+    handleSteal(offensivePlayer, defensivePlayer) {
+      // Determine teams based on possession
+      const isTeamOneOnOffense = this.possession === 0;
+      const offenseStats = isTeamOneOnOffense
+        ? this.playerStatTemplate.teamOne
+        : this.playerStatTemplate.teamTwo;
+      const defenseStats = isTeamOneOnOffense
+        ? this.playerStatTemplate.teamTwo
+        : this.playerStatTemplate.teamOne;
+      const offenseTeamStats = isTeamOneOnOffense
+        ? this.teamStats.teamOne
+        : this.teamStats.teamTwo;
+      const defenseTeamStats = isTeamOneOnOffense
+        ? this.teamStats.teamTwo
+        : this.teamStats.teamOne;
+
+      // Log and update stats
+      this.logSteal(defensivePlayer, offensivePlayer);
+      defenseStats[`${defensivePlayer.name}`].steals++;
+      defenseTeamStats.steals++;
+      offenseStats[`${offensivePlayer.name}`].turnovers++;
+      offenseTeamStats.turnovers++;
+
+      // Change possession
+      this.possession = isTeamOneOnOffense ? 1 : 0; // Switch possession
     },
     async updateTeamById(id, body) {
       const res = await UpdateTeamById(id, body);
