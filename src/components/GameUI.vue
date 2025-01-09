@@ -395,6 +395,9 @@ import {
   CreateGame
   // GetTeamByNameAndPassword
 } from '../services/routes.js';
+import { reactive } from 'vue';
+import debounce from 'lodash/debounce';
+
 export default {
   mounted() {
     // setTimeout(this.startGame(), 5000)
@@ -449,7 +452,9 @@ export default {
       gameScore: {
         teamOne: 0,
         teamTwo: 0
-      }
+      },
+      playerStatsCache: reactive({}),
+      teamStatsCache: {}
     };
   },
   computed: {
@@ -634,6 +639,7 @@ export default {
         if (this.timeLeft % randomEventTime === 0) {
           this.$nextTick(() => {
             this.gameCycle();
+            this.updateDOM();
           });
         }
       }, intervalTime);
@@ -1072,64 +1078,130 @@ export default {
       // Ensure block chance is between 0 and 1
       return Math.max(0, Math.min(blockChance, 0.06));
     },
-    calcRebounder(team) {
-      let reboundChances = [];
-      let totalReboundScore = 0;
+    calculatePlayerStats(player) {
+      if (!this.playerStatsCache[player.id]) {
+        const positionModifiers = {
+          PG: 0.7,
+          SG: 0.7,
+          SF: 1.0,
+          PF: 1.3,
+          C: 1.8
+        };
 
-      team.forEach((player) => {
-        // Adjust rebounding score based on player position
-        let reboundScore =
-          player.attributes.defense.def_rebound +
-          player.attributes.offense.off_rebound;
+        const reboundScore =
+          (player.attributes.defense.def_rebound +
+            player.attributes.offense.off_rebound) *
+          (positionModifiers[player.position] || 1.0);
 
-        // Penalize guards, boost big men
-        if (player.position === 'PG' || player.position === 'SG') {
-          reboundScore *= 0.7; // Guards get a penalty
-        } else if (player.position === 'C' || player.position === 'PF') {
-          reboundScore *= 1.3; // Big men get a bonus
-        }
+        const assistScore =
+          player.attributes.offense.handles * 0.5 +
+          player.attributes.offense.pass * 0.5 +
+          player.tendencies.offense.pass * 3.5;
 
-        reboundChances.push(reboundScore);
-        totalReboundScore += reboundScore;
+        const shotTendencies = {
+          rim: player.tendencies.offense.attack_rim,
+          mid: player.tendencies.offense.shoot_mid,
+          three: player.tendencies.offense.shoot_three,
+          post: player.tendencies.offense.post_up
+        };
+
+        const shootingScores = {
+          layupDunk:
+            player.attributes.offense.dunk + player.attributes.offense.layup,
+          midRange: player.attributes.offense.mid_range,
+          threePoint: player.attributes.offense.three,
+          postShot: player.attributes.offense.post_shot
+        };
+
+        // Cache calculated stats
+        this.playerStatsCache[player.id] = {
+          reboundScore,
+          assistScore,
+          shotTendencies,
+          shootingScores
+        };
+      }
+
+      return this.playerStatsCache[player.id];
+    },
+    calculateTeamStats(team, teamKey) {
+      if (!this.teamStatsCache[teamKey]) {
+        const totalReboundScore = team.reduce((sum, player) => {
+          const stats = this.calculatePlayerStats(player);
+          return sum + stats.reboundScore;
+        }, 0);
+
+        const perimeterDefense = team.reduce((sum, player) => {
+          return (
+            sum +
+            (player.attributes.defense.outside_defense +
+              player.tendencies.defense.steal +
+              player.tendencies.defense.intercept) /
+              3
+          );
+        }, 0);
+
+        const passingEfficiency = team.reduce((sum, player) => {
+          return (
+            sum +
+            (player.attributes.offense.handles +
+              player.attributes.offense.pass) /
+              2
+          );
+        }, 0);
+
+        // Cache calculated team stats
+        this.teamStatsCache[teamKey] = {
+          totalReboundScore,
+          perimeterDefense,
+          passingEfficiency
+        };
+      }
+
+      return this.teamStatsCache[teamKey];
+    },
+
+    /**
+     * Invalidate player and team caches when necessary.
+     */
+    invalidateCaches(playerId = null, teamKey = null) {
+      if (playerId) {
+        delete this.playerStatsCache[playerId];
+      }
+      if (teamKey) {
+        delete this.teamStatsCache[teamKey];
+      }
+    },
+    calcRebounder(team, teamKey) {
+      const teamStats = this.calculateTeamStats(team, teamKey);
+      const reboundChances = team.map((player) => {
+        const stats = this.calculatePlayerStats(player);
+        return stats.reboundScore / teamStats.totalReboundScore;
       });
-
-      // Convert rebound scores to probabilities
-      const probabilities = reboundChances.map(
-        (score) => score / totalReboundScore
-      );
 
       const chance = Math.random();
       let cumulativeProbability = 0;
-
-      // Determine the rebounder based on probabilities
-      for (let i = 0; i < probabilities.length; i++) {
-        cumulativeProbability += probabilities[i];
+      for (let i = 0; i < reboundChances.length; i++) {
+        cumulativeProbability += reboundChances[i];
         if (chance <= cumulativeProbability) {
-          return team[i]; // Return the player who gets the rebound
+          return team[i];
         }
       }
 
-      return team[team.length - 1]; // Fallback to the last player in case of rounding issues
+      return team[team.length - 1]; // Fallback
     },
     logRebounds(string) {
       this.gameLog.unshift(string[Math.floor(Math.random() * string.length)]);
     },
-    calcSteal(offTeam, defTeam) {
-      const chance = Math.random().toFixed(2);
-      const teamPassingIq = this.calcPassing(offTeam);
-      const teamPerimeterDefense = this.calcPerimeterDefense(defTeam);
-      const stealChance = parseFloat(
-        (
-          teamPerimeterDefense / (teamPassingIq + teamPerimeterDefense) -
-          0.4
-        ).toFixed(2)
-      );
+    calcSteal(offTeam, defTeam, offTeamKey, defTeamKey) {
+      const offenseStats = this.calculateTeamStats(offTeam, offTeamKey);
+      const defenseStats = this.calculateTeamStats(defTeam, defTeamKey);
 
-      if (chance > stealChance) {
-        return false;
-      } else {
-        return true;
-      }
+      const stealChance =
+        defenseStats.perimeterDefense /
+        (offenseStats.passingEfficiency + defenseStats.perimeterDefense);
+
+      return Math.random() < stealChance;
     },
     calcPassing(team) {
       let teamPassing = 0;
@@ -1154,7 +1226,7 @@ export default {
     },
     updateScoreAndLog(player, points, type) {
       const isTeamOne = this.possession === 0;
-
+      ``;
       // Determine the assisting player
       const assistPlayer = this.calcAssist(
         isTeamOne ? this.teams.teamOne : this.teams.teamTwo,
@@ -1421,13 +1493,13 @@ export default {
       // this.getUpdatedTeam(team.team_name, team.password);
     },
 
-    updateDOM() {
+    updateDOM: debounce(function () {
       this.updateGameLog();
       this.updatePlayerStats();
       this.updateTeamStats();
       this.updateScoreboard();
       this.updatePossessionIndicator();
-    },
+    }, 100),
 
     updateGameLog() {
       // Example: Update the game log in the DOM
@@ -1528,6 +1600,24 @@ export default {
         this.possession === 0 ? 'home' : 'away',
         `${defensivePlayer.name} steals the ball from ${offensivePlayer.name}`
       );
+    },
+    updatePlayerAttributes(playerId, newAttributes) {
+      const player = this.getPlayerById(playerId);
+      if (player) {
+        Object.assign(player.attributes, newAttributes);
+        this.invalidateCaches(playerId);
+      }
+    },
+
+    /**
+     * Cache invalidation example: When a team's lineup changes.
+     */
+    updateTeamLineup(teamKey, newLineup) {
+      const team = this.getTeamByKey(teamKey);
+      if (team) {
+        team.splice(0, team.length, ...newLineup);
+        this.invalidateCaches(null, teamKey);
+      }
     },
     async updateTeamById(id, body) {
       const res = await UpdateTeamById(id, body);
