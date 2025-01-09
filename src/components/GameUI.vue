@@ -85,13 +85,39 @@
                   >
                     {{ playerStatTemplate.teamOne[player.name].points }}
                   </td>
-                  <td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamOne[player.name].rebounds
+                    }"
+                  >
                     {{ playerStatTemplate.teamOne[player.name].rebounds }}
                   </td>
-                  <td>{{ playerStatTemplate.teamOne[player.name].assists }}</td>
-                  <td>{{ playerStatTemplate.teamOne[player.name].steals }}</td>
-                  <td>{{ playerStatTemplate.teamOne[player.name].blocks }}</td>
-                  <td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamOne[player.name].assists
+                    }"
+                  >
+                    {{ playerStatTemplate.teamOne[player.name].assists }}
+                  </td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamOne[player.name].steals
+                    }"
+                  >
+                    {{ playerStatTemplate.teamOne[player.name].steals }}
+                  </td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamOne[player.name].blocks
+                    }"
+                  >
+                    {{ playerStatTemplate.teamOne[player.name].blocks }}
+                  </td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamOne[player.name].turnovers
+                    }"
+                  >
                     {{ playerStatTemplate.teamOne[player.name].turnovers }}
                   </td>
                 </tr>
@@ -234,14 +260,46 @@
                         : '0%'
                     }}
                   </td>
-                  <td>{{ playerStatTemplate.teamTwo[player.name].points }}</td>
-                  <td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamTwo[player.name].points
+                    }"
+                  >
+                    {{ playerStatTemplate.teamTwo[player.name].points }}
+                  </td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamTwo[player.name].rebounds
+                    }"
+                  >
                     {{ playerStatTemplate.teamTwo[player.name].rebounds }}
                   </td>
-                  <td>{{ playerStatTemplate.teamTwo[player.name].assists }}</td>
-                  <td>{{ playerStatTemplate.teamTwo[player.name].steals }}</td>
-                  <td>{{ playerStatTemplate.teamTwo[player.name].blocks }}</td>
-                  <td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamTwo[player.name].assists
+                    }"
+                  >
+                    {{ playerStatTemplate.teamTwo[player.name].assists }}
+                  </td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamTwo[player.name].steals
+                    }"
+                  >
+                    {{ playerStatTemplate.teamTwo[player.name].steals }}
+                  </td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamTwo[player.name].blocks
+                    }"
+                  >
+                    {{ playerStatTemplate.teamTwo[player.name].blocks }}
+                  </td>
+                  <td
+                    :class="{
+                      'stat-changed': statChanges.teamTwo[player.name].turnovers
+                    }"
+                  >
                     {{ playerStatTemplate.teamTwo[player.name].turnovers }}
                   </td>
                 </tr>
@@ -517,7 +575,7 @@ export default {
     countdown() {
       this.startGame();
     },
-    getPlayerOverall() {},
+
     startGame() {
       this.gameInProgress = true;
       if (typeof this.startQuarter === 'function') {
@@ -702,17 +760,24 @@ export default {
       let mid = 0;
       let three = 0;
       let post = 0;
+      // Adjust shot type tendencies dynamically based on player tendencies and attributes
       for (const property in player.tendencies.offense) {
         if (property === 'pass' || property === 'set_screen') {
-          continue;
-        } else if (property == 'attack_rim') {
-          rim += player.tendencies.offense[property];
-        } else if (property == 'shoot_mid') {
-          mid += player.tendencies.offense[property];
-        } else if (property == 'shoot_three') {
-          three += player.tendencies.offense[property];
-        } else {
-          post += player.tendencies.offense[property];
+          continue; // Skip tendencies unrelated to shot selection
+        } else if (property === 'attack_rim') {
+          rim += player.tendencies.offense[property] * 1.2; // Slight boost for rim attacks
+        } else if (property === 'shoot_mid') {
+          mid += player.tendencies.offense[property]; // Neutral adjustment for mid-range shots
+        } else if (property === 'shoot_three') {
+          const threeRating = player.attributes.offense.three || 50; // Default to 50 if undefined
+
+          // Combine tendency and three-point attribute into a scaled value
+          const scaledThreeTendency =
+            player.tendencies.offense[property] * (threeRating / 100);
+
+          three += scaledThreeTendency; // Add scaled tendency
+        } else if (property === 'post_up') {
+          post += player.tendencies.offense[property] * 1.3; // Boost for post-up tendencies
         }
       }
 
@@ -870,29 +935,23 @@ export default {
       const blockOutcome = Math.random(); // Random roll to decide outcome
       const blockStaysInbounds = blockOutcome < 0.65;
 
+      // Determine team keys dynamically
+      const offenseTeamKey = possession === 0 ? 'teamOne' : 'teamTwo';
+      const defenseTeamKey = possession === 0 ? 'teamTwo' : 'teamOne';
+
       // Log the block
       const message = `${matchup.name} blocks ${player.name}'s shot!`;
-      if (possession === 0) {
-        this.addLog('away', message);
-        this.playerStatTemplate.teamTwo[matchup.name].blocks++;
-        this.teamStats.teamTwo.blocks++;
-      } else {
-        this.addLog('home', message);
-        this.playerStatTemplate.teamOne[matchup.name].blocks++;
-        this.teamStats.teamOne.blocks++;
-      }
+      this.addLog(possession === 0 ? 'away' : 'home', message);
+
+      // Update block stats for the defensive player
+      this.markStatChanged(defenseTeamKey, matchup.name, 'blocks');
+      this.playerStatTemplate[defenseTeamKey][matchup.name].blocks++;
+      this.teamStats[defenseTeamKey].blocks++;
 
       // Record a missed attempt for the blocked shot
-      const isTeamOne = possession === 0; // Determine the team of the shooter
-      const currentPlayerStats = isTeamOne
-        ? this.playerStatTemplate.teamOne[player.name]
-        : this.playerStatTemplate.teamTwo[player.name];
-      const currentTeamStats = isTeamOne
-        ? this.teamStats.teamOne
-        : this.teamStats.teamTwo;
-
-      currentPlayerStats.fga++; // Increment field goal attempts
-      currentTeamStats.fga++;
+      this.markStatChanged(offenseTeamKey, player.name, 'fga');
+      this.playerStatTemplate[offenseTeamKey][player.name].fga++;
+      this.teamStats[offenseTeamKey].fga++;
 
       if (blockStaysInbounds) {
         this.rebound(this.teams.teamOne, this.teams.teamTwo);
@@ -940,10 +999,12 @@ export default {
           rebounder = this.calcRebounder(team1);
           this.playerStatTemplate.teamOne[`${rebounder.name}`].rebounds++;
           this.teamStats.teamOne.rebounds++;
+          this.markStatChanged('teamOne', rebounder.name, 'rebounds');
           this.addLog('home', `${rebounder.name} grabs offensive rebound.`);
         } else {
           rebounder = this.calcRebounder(team2);
           this.playerStatTemplate.teamTwo[`${rebounder.name}`].rebounds++;
+          this.markStatChanged('teamTwo', rebounder.name, 'rebounds');
           this.teamStats.teamTwo.rebounds++;
           this.addLog('away', `${rebounder.name} grabs defensive rebound.`);
           this.possession = 1; // Change possession
@@ -974,33 +1035,38 @@ export default {
     },
     calcBlockChance(defender, shooter, shotType) {
       // Defensive stats contributions
-      const insideDefenseWeight = 0.5;
-      const perimeterDefenseWeight = 0.2; // Smaller weight for perimeter defense
-      const verticalWeight = 0.2;
-      const heightWeight = 0.1;
+      const insideDefenseWeight = 0.2; // Further reduced weight for inside defense
+      const perimeterDefenseWeight = 0.1; // Further reduced weight for perimeter defense
+      const verticalWeight = 0.5; // Significantly increased weight for vertical
+      const heightWeight = 0.3; // Significantly increased weight for height
 
+      const positionPenalty =
+        defender.position === 'PG' || defender.position === 'SG' ? 0.3 : 1; // Guards only 50% as effective in blocking
+      // Shooter's ability to counter blocks
       // Defender's effective block ability
       let effectiveDefense =
-        defender.attributes.defense.inside_defense * insideDefenseWeight +
-        defender.attributes.defense.outside_defense * perimeterDefenseWeight +
-        defender.attributes.physical.vertical * verticalWeight +
-        defender.height * heightWeight; // Include height advantage
+        (defender.attributes.defense.inside_defense * insideDefenseWeight +
+          defender.attributes.defense.outside_defense * perimeterDefenseWeight +
+          defender.attributes.physical.vertical * verticalWeight +
+          defender.height * heightWeight) *
+        positionPenalty; // Include height advantage
 
-      // Shooter's ability to counter blocks
-      const shooterAdvantage = shooter.height * 0.05; // Taller shooters are harder to block
+      const shooterAdvantage = shooter.height * 0.1; // Taller shooters are harder to block
 
       // Adjust based on shot type
       if (shotType === 'shoot_mid' || shotType === 'shoot_three') {
-        effectiveDefense *= 0.7; // Lower block effectiveness for outside shots
+        effectiveDefense *= 0.3; // Further lower block effectiveness for outside shots
+      } else if (shotType === 'attack_rim' || shotType === 'post_up') {
+        effectiveDefense *= 1.5; // Boost block effectiveness for inside shots
       }
 
       // Global scaling for block chance
-      const globalBlockScale = 0.05; // Adjust to target ~3% block rate
+      const globalBlockScale = 0.06; // Adjust to target ~3% block rate
       const blockChance =
         (effectiveDefense - shooterAdvantage) * globalBlockScale;
 
       // Ensure block chance is between 0 and 1
-      return Math.max(0, Math.min(blockChance, 0.05));
+      return Math.max(0, Math.min(blockChance, 0.06));
     },
     calcRebounder(team) {
       let reboundChances = [];
@@ -1093,14 +1159,21 @@ export default {
 
       // Log assist information if an assist player is determined
       if (assistPlayer) {
-        const assistStats = isTeamOne
-          ? this.playerStatTemplate.teamOne[assistPlayer.name]
-          : this.playerStatTemplate.teamTwo[assistPlayer.name];
+        const teamKey = isTeamOne ? 'teamOne' : 'teamTwo';
+        const assistStats = this.playerStatTemplate[teamKey][assistPlayer.name];
+
+        // Increment assist stats
         assistStats.assists++;
-        const teamStats = isTeamOne
-          ? this.teamStats.teamOne
-          : this.teamStats.teamTwo;
-        teamStats.assists++;
+        this.teamStats[teamKey].assists++;
+
+        // Mark the stat as changed for highlighting
+        this.markStatChanged(teamKey, assistPlayer.name, 'assists');
+
+        // Log assist information
+        this.addLog(
+          isTeamOne ? 'home' : 'away',
+          `${assistPlayer.name} assisted the basket!`
+        );
       }
       // Determine the team dynamically
       const team = isTeamOne ? 'teamOne' : 'teamTwo';
@@ -1170,9 +1243,9 @@ export default {
       const message = `${stealPlayer.name} stole the ball from ${turnoverPlayer.name}.`;
 
       if (isTeamOne) {
-        this.addLog('home', message);
-      } else {
         this.addLog('away', message);
+      } else {
+        this.addLog('home', message);
       }
     },
     calcAssist(team, currentPlayer) {
@@ -1336,25 +1409,26 @@ export default {
     handleSteal(offensivePlayer, defensivePlayer) {
       // Determine teams based on possession
       const isTeamOneOnOffense = this.possession === 0;
-      const offenseStats = isTeamOneOnOffense
-        ? this.playerStatTemplate.teamOne
-        : this.playerStatTemplate.teamTwo;
-      const defenseStats = isTeamOneOnOffense
-        ? this.playerStatTemplate.teamTwo
-        : this.playerStatTemplate.teamOne;
-      const offenseTeamStats = isTeamOneOnOffense
-        ? this.teamStats.teamOne
-        : this.teamStats.teamTwo;
-      const defenseTeamStats = isTeamOneOnOffense
-        ? this.teamStats.teamTwo
-        : this.teamStats.teamOne;
+      const offenseTeamKey = isTeamOneOnOffense ? 'teamOne' : 'teamTwo';
+      const defenseTeamKey = isTeamOneOnOffense ? 'teamTwo' : 'teamOne';
+
+      const offenseStats = this.playerStatTemplate[offenseTeamKey];
+      const defenseStats = this.playerStatTemplate[defenseTeamKey];
+      const offenseTeamStats = this.teamStats[offenseTeamKey];
+      const defenseTeamStats = this.teamStats[defenseTeamKey];
 
       // Log and update stats
       this.logSteal(defensivePlayer, offensivePlayer);
-      defenseStats[`${defensivePlayer.name}`].steals++;
+
+      // Update defensive player stats
+      defenseStats[defensivePlayer.name].steals++;
       defenseTeamStats.steals++;
-      offenseStats[`${offensivePlayer.name}`].turnovers++;
+      this.markStatChanged(defenseTeamKey, defensivePlayer.name, 'steals');
+
+      // Update offensive player stats
+      offenseStats[offensivePlayer.name].turnovers++;
       offenseTeamStats.turnovers++;
+      this.markStatChanged(offenseTeamKey, offensivePlayer.name, 'turnovers');
 
       // Change possession
       this.possession = isTeamOneOnOffense ? 1 : 0; // Switch possession
@@ -1411,8 +1485,8 @@ export default {
 
 @keyframes stat-flash {
   0% {
-    background-color: red;
-    color: white;
+    color: rgb(191, 0, 0);
+    /* color: white; */
   }
   100% {
     background-color: transparent;
