@@ -614,6 +614,7 @@ export default {
 
     runClock() {
       const intervalTime = 1000 / this.speed; // Adjust interval time based on speed
+      const randomEventTime = this.getRandomEventTime();
 
       this.intervalId = setInterval(() => {
         if (!this.gameInProgress) {
@@ -621,16 +622,17 @@ export default {
           return;
         }
 
-        if (this.timeLeft > 0) {
-          this.timeLeft--;
-
-          // Trigger game logic periodically
-          if (this.timeLeft % this.getRandomEventTime() === 0) {
-            this.gameCycle();
-          }
-        } else {
-          clearInterval(this.intervalId); // Stop the clock when time is up
+        if (this.timeLeft <= 0) {
+          clearInterval(this.intervalId);
           this.endQuarter();
+          return;
+        }
+
+        this.timeLeft--;
+
+        // Trigger game logic periodically
+        if (this.timeLeft % randomEventTime === 0) {
+          this.gameCycle();
         }
       }, intervalTime);
     },
