@@ -632,7 +632,9 @@ export default {
 
         // Trigger game logic periodically
         if (this.timeLeft % randomEventTime === 0) {
-          this.gameCycle();
+          this.$nextTick(() => {
+            this.gameCycle();
+          });
         }
       }, intervalTime);
     },
@@ -1372,6 +1374,16 @@ export default {
       }, 1000); // Reset after 1 second
     },
     gameCycle() {
+      // Perform all state updates first
+      this.updateGameState();
+
+      // Batch DOM updates
+      this.$nextTick(() => {
+        this.updateDOM();
+      });
+    },
+
+    updateGameState() {
       if (!this.gameInProgress) return;
 
       if (this.possession === null) {
@@ -1408,6 +1420,84 @@ export default {
       // const team = JSON.parse(localStorage.getItem('team_name'));
       // this.getUpdatedTeam(team.team_name, team.password);
     },
+
+    updateDOM() {
+      this.updateGameLog();
+      this.updatePlayerStats();
+      this.updateTeamStats();
+      this.updateScoreboard();
+      this.updatePossessionIndicator();
+    },
+
+    updateGameLog() {
+      // Example: Update the game log in the DOM
+      const gameLogElement = document.getElementById('game-log');
+      if (gameLogElement) {
+        gameLogElement.innerHTML = this.gameLog
+          .map((log) => `<li>${log}</li>`)
+          .join('');
+      }
+    },
+
+    updatePlayerStats() {
+      // Example: Update player stats in the DOM
+      const playerStatsElement = document.getElementById('player-stats');
+      if (playerStatsElement) {
+        playerStatsElement.innerHTML = this.players
+          .map(
+            (player) => `
+          <div>
+            <h3>${player.name}</h3>
+            <p>Points: ${player.points}</p>
+            <p>Rebounds: ${player.rebounds}</p>
+            <p>Assists: ${player.assists}</p>
+          </div>
+        `
+          )
+          .join('');
+      }
+    },
+
+    updateTeamStats() {
+      // Example: Update team stats in the DOM
+      const teamStatsElement = document.getElementById('team-stats');
+      if (teamStatsElement) {
+        teamStatsElement.innerHTML = `
+          <div>
+            <h3>Team One</h3>
+            <p>Points: ${this.teamStats.teamOne.points}</p>
+            <p>Rebounds: ${this.teamStats.teamOne.rebounds}</p>
+            <p>Assists: ${this.teamStats.teamOne.assists}</p>
+          </div>
+          <div>
+            <h3>Team Two</h3>
+            <p>Points: ${this.teamStats.teamTwo.points}</p>
+            <p>Rebounds: ${this.teamStats.teamTwo.rebounds}</p>
+            <p>Assists: ${this.teamStats.teamTwo.assists}</p>
+          </div>
+        `;
+      }
+    },
+
+    updateScoreboard() {
+      // Example: Update the scoreboard in the DOM
+      const scoreboardElement = document.getElementById('scoreboard');
+      if (scoreboardElement) {
+        scoreboardElement.innerHTML = `
+          <div>Team One: ${this.gameScore.teamOne}</div>
+          <div>Team Two: ${this.gameScore.teamTwo}</div>
+        `;
+      }
+    },
+
+    updatePossessionIndicator() {
+      // Example: Update the possession indicator in the DOM
+      const possessionElement = document.getElementById('possession-indicator');
+      if (possessionElement) {
+        possessionElement.innerHTML = this.possession === 0 ? 'Home' : 'Away';
+      }
+    },
+
     handleSteal(offensivePlayer, defensivePlayer) {
       // Determine teams based on possession
       const isTeamOneOnOffense = this.possession === 0;
@@ -1433,7 +1523,11 @@ export default {
       this.markStatChanged(offenseTeamKey, offensivePlayer.name, 'turnovers');
 
       // Change possession
-      this.possession = isTeamOneOnOffense ? 1 : 0; // Switch possession
+      this.possession = isTeamOneOnOffense ? 1 : 0;
+      this.addLog(
+        this.possession === 0 ? 'home' : 'away',
+        `${defensivePlayer.name} steals the ball from ${offensivePlayer.name}`
+      );
     },
     async updateTeamById(id, body) {
       const res = await UpdateTeamById(id, body);
